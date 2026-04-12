@@ -7,39 +7,30 @@
 // SELECT 0 FROM generate_series(1, 20);
 
 import express from "express";
-import pg from "pg";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
 import cors from "cors";
+import db from "./config/db.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-
 const port = process.env.PORT || 8080;
-
-// Equivalent to mongoose connection
-// Pool is nothing but group of connections
-// If you pick one connection out of the pool and release it
-// the pooler will keep that connection open for sometime to other clients to reuse
-const pool = new pg.Pool({
-  host: "localhost",
-  port: 5433,
-  user: "postgres",
-  password: "postgres",
-  database: "sql_class_2_db",
-  max: 20,
-  connectionTimeoutMillis: 0,
-  idleTimeoutMillis: 0,
-});
 
 const app = new express();
 app.use(cors());
+app.use(express.json()); // needed for parsing POST body in /auth routes
+
+import authRoutes from "./routes/authRoutes.mjs";
+import bookingRoutes from "./routes/bookingRoutes.mjs";
+
+app.use("/auth", authRoutes);
+app.use("/book", bookingRoutes);
 
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/index.html");
 });
 //get all seats
 app.get("/seats", async (req, res) => {
-  const result = await pool.query("select * from seats"); // equivalent to Seats.find() in mongoose
+  const result = await db.query("select * from seats"); // equivalent to Seats.find() in mongoose
   res.send(result.rows);
 });
 
@@ -51,7 +42,7 @@ app.put("/:id/:name", async (req, res) => {
     const name = req.params.name;
     // payment integration should be here
     // verify payment
-    const conn = await pool.connect(); // pick a connection from the pool
+    const conn = await db.connect(); // pick a connection from the pool
     //begin transaction
     // KEEP THE TRANSACTION AS SMALL AS POSSIBLE
     await conn.query("BEGIN");
