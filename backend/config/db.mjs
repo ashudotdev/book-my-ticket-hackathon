@@ -13,10 +13,10 @@ if (process.env.DATABASE_URL) {
 } else {
   poolConfig = {
     host: process.env.DB_HOST || "localhost",
-    port: process.env.DB_PORT || 5433,
+    port: process.env.DB_PORT || 5432,
     user: process.env.DB_USER || "postgres",
-    password: process.env.DB_PASSWORD || "postgres",
-    database: process.env.DB_NAME || "sql_class_2_db",
+    password: process.env.DB_PASSWORD || "ashutosh",
+    database: process.env.DB_NAME || "booking_db",
     max: 20,
     connectionTimeoutMillis: 0,
     idleTimeoutMillis: 0,
