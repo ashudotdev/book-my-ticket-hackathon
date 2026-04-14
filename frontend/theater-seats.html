@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Movie Ticket Booking</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Outfit', sans-serif;
+      background: radial-gradient(ellipse at 50% 30%, #1a0101 70%, #0a0a0a 100%);
+      color: #fff;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 32px 0 0 0;
+    }
+    .screen-svg {
+      display: block;
+      margin: 0 auto 32px auto;
+      width: 95%;
+      max-width: 600px;
+    }
+    .seats-grid {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 32px;
+    }
+    .seat-row {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+    }
+    .seat-btn {
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      transition: transform 0.1s;
+      width: 48px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .seat-btn:active {
+      transform: scale(0.92);
+    }
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      margin-bottom: 24px;
+      font-size: 1.1rem;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .buy-bar {
+      background: #2a0a0a;
+      border-radius: 18px 18px 0 0;
+      padding: 24px 36px;
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      max-width: 700px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 -2px 24px rgba(0,0,0,0.3);
+      font-size: 1.2rem;
+    }
+    .buy-btn {
+      background: #00ffe0;
+      color: #1a1a1a;
+      border: none;
+      border-radius: 14px;
+      padding: 16px 38px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .buy-btn:active {
+      background: #00bfae;
+    }
+    @media (max-width: 800px) {
+      .container, .buy-bar { max-width: 98vw; }
+      .screen-svg { max-width: 98vw; }
+    }
+    @media (max-width: 600px) {
+      .container, .buy-bar { max-width: 100vw; padding-left: 0; padding-right: 0; }
+      .screen-svg { max-width: 100vw; }
+      .buy-bar { padding: 16px 10px; font-size: 1rem; }
+      .seat-btn { width: 32px; height: 24px; }
+      .legend { font-size: 0.95rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <button id="back-btn" style="background:none;border:none;color:#00ffe0;font-size:1.1rem;cursor:pointer;margin-bottom:18px;">← Back</button>
+    <svg class="screen-svg" viewBox="0 0 365 82" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#filter0_f_4_539)"><path d="M17.5007 64C123.648 22.8277 241.353 22.8277 347.501 64" stroke="#D40800" stroke-width="5" stroke-linecap="round"/></g><path d="M17.5007 64C123.648 22.8277 241.353 22.8277 347.501 64" stroke="#D40800" stroke-width="5" stroke-linecap="round"/><defs><filter id="filter0_f_4_539" x="0" y="15.6208" width="365.001" height="65.8799" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="7.5" result="effect1_foregroundBlur_4_539"/></filter></defs></svg>
+    <div class="seats-grid" id="seats-grid"></div>
+    <div class="legend">
+      <div class="legend-item"><span id="legend-available"></span>Available</div>
+      <div class="legend-item"><span id="legend-booked"></span>Booked</div>
+      <div class="legend-item"><span id="legend-selected"></span>Selected</div>
+    </div>
+    <div id="show-info" style="text-align:center;margin-bottom:18px;font-size:1.1rem;color:#00ffe0;"></div>
+  </div>
+  <div class="buy-bar" id="buy-bar">
+    <div id="selected-info">No seat selected</div>
+    <button class="buy-btn" id="buy-btn">Buy</button>
+  </div>
+  <script>
+    // SVGs for seats
+    const seatSVGs = {
+      available: `<svg width="40" height="32" viewBox="0 0 30 22" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 4C0 2.89543 0.89543 2 2 2H4C5.10457 2 6 2.89543 6 4V14C6 15.1046 6.89543 16 8 16H22C23.1046 16 24 15.1046 24 14V4C24 2.89543 24.8954 2 26 2H28C29.1046 2 30 2.89543 30 4V17C30 19.7614 27.7614 22 25 22H5C2.23858 22 0 19.7614 0 17V4Z" fill="#D9D9D9"/><path d="M7 3C7 1.34315 8.34315 0 10 0H20C21.6569 0 23 1.34315 23 3V14C23 14.5523 22.5523 15 22 15H8C7.44772 15 7 14.5523 7 14V3Z" fill="#D9D9D9"/></svg>`,
+      booked: `<svg width="40" height="32" viewBox="0 0 30 22" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 4C0 2.89543 0.89543 2 2 2H4C5.10457 2 6 2.89543 6 4V14C6 15.1046 6.89543 16 8 16H22C23.1046 16 24 15.1046 24 14V4C24 2.89543 24.8954 2 26 2H28C29.1046 2 30 2.89543 30 4V17C30 19.7614 27.7614 22 25 22H5C2.23858 22 0 19.7614 0 17V4Z" fill="#FF413C"/><path d="M7 3C7 1.34315 8.34315 0 10 0H20C21.6569 0 23 1.34315 23 3V14C23 14.5523 22.5523 15 22 15H8C7.44772 15 7 14.5523 7 14V3Z" fill="#FF413C"/></svg>`,
+      selected: `<svg width="40" height="32" viewBox="0 0 30 22" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#filter0_d_4_574)"><path d="M0 4C0 2.89543 0.89543 2 2 2H4C5.10457 2 6 2.89543 6 4V14C6 15.1046 6.89543 16 8 16H22C23.1046 16 24 15.1046 24 14V4C24 2.89543 24.8954 2 26 2H28C29.1046 2 30 2.89543 30 4V17C30 19.7614 27.7614 22 25 22H5C2.23858 22 0 19.7614 0 17V4Z" fill="#00FFE0"/><path d="M7 3C7 1.34315 8.34315 0 10 0H20C21.6569 0 23 1.34315 23 3V14C23 14.5523 22.5523 15 22 15H8C7.44772 15 7 14.5523 7 14V3Z" fill="#00FFE0"/></g><defs><filter id="filter0_d_4_574" x="0" y="0" width="30" height="22" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset/><feGaussianBlur stdDeviation="2"/><feComposite in2="hardAlpha" operator="out"/><feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 1 0 0 0 0 0.878431 0 0 0 0.25 0"/><feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_4_574"/><feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_4_574" result="shape"/></filter></defs></svg>`
+    };
+    document.getElementById('legend-available').innerHTML = seatSVGs.available;
+    document.getElementById('legend-booked').innerHTML = seatSVGs.booked;
+    document.getElementById('legend-selected').innerHTML = seatSVGs.selected;
+
+    // Theater-style seat layout: array of seat counts per row
+    const seatLayout = [8, 10, 12, 10, 8, 6];
+    let seatsData = [];
+    let selectedSeats = [];
+
+    // Fetch seats from backend
+    function fetchSeats() {
+      fetch('https://book-my-ticket-hackathon.onrender.com/seats')
+        .then(res => res.json())
+        .then(data => {
+          seatsData = data;
+          renderSeats();
+        });
+    }
+    fetchSeats();
+
+    // Render seats grid
+    function renderSeats() {
+      const grid = document.getElementById('seats-grid');
+      grid.innerHTML = '';
+      let idx = 0;
+      for (let row = 0; row < seatLayout.length; row++) {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'seat-row';
+        // Add left margin for theater curve effect
+        rowDiv.style.marginLeft = `${Math.abs((seatLayout[3] - seatLayout[row]) * 18)}px`;
+        for (let col = 0; col < seatLayout[row]; col++) {
+          if (idx >= seatsData.length) break;
+          const seat = seatsData[idx];
+          const btn = document.createElement('button');
+          btn.className = 'seat-btn';
+          btn.setAttribute('data-id', seat.id);
+          if (seat.isbooked) {
+            btn.innerHTML = seatSVGs.booked;
+            btn.disabled = true;
+          } else if (selectedSeats.includes(seat.id)) {
+            btn.innerHTML = seatSVGs.selected;
+          } else {
+            btn.innerHTML = seatSVGs.available;
+          }
+          btn.addEventListener('click', function() {
+            if (selectedSeats.includes(seat.id)) {
+              selectedSeats = selectedSeats.filter(s => s !== seat.id);
+            } else {
+              selectedSeats = [seat.id]; // Only one seat at a time for simplicity
+            }
+            renderSeats();
+            updateBuyBar();
+          });
+          rowDiv.appendChild(btn);
+          idx++;
+        }
+        grid.appendChild(rowDiv);
+      }
+      updateBuyBar();
+    }
+
+    function updateBuyBar() {
+      const info = document.getElementById('selected-info');
+      if (selectedSeats.length === 0) {
+        info.textContent = 'No seat selected';
+      } else {
+        info.textContent = `Selected seat: ${selectedSeats.join(', ')}`;
+      }
+    }
+
+    document.getElementById('buy-btn').addEventListener('click', function() {
+      if (selectedSeats.length === 0) {
+        alert('Please select a seat!');
+        return;
+      }
+      const seatId = selectedSeats[0];
+      const name = prompt('Enter your name to book:');
+      if (!name) return;
+      fetch(`https://book-my-ticket-hackathon.onrender.com/book/legacy/${seatId}/${encodeURIComponent(name)}`, { method: 'PUT' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            alert('Booking failed: ' + data.error);
+          } else {
+            alert('Booking successful!');
+            selectedSeats = [];
+            fetchSeats();
+          }
+        });
+    });
+
+    // Add back button navigation
+    document.getElementById('back-btn').onclick = function() {
+      window.location.href = 'second.html';
+    };
+
+    // Show selected movie/time if present in query string
+    function getQueryParam(name) {
+      const url = new URL(window.location.href);
+      return url.searchParams.get(name);
+    }
+    const movie = getQueryParam('movie');
+    const time = getQueryParam('time');
+    if (movie && time) {
+      document.getElementById('show-info').textContent = `Movie: ${decodeURIComponent(movie)}, Time: ${decodeURIComponent(time)}`;
+    }
+
+    // Movie color backgrounds (match with second.html for consistency)
+    const MOVIE_COLORS = {
+      'Dhurandhar the Revenge': 'linear-gradient(180deg, #7a0e0b 0%, #2a0706 100%)',
+      'Booth Bangla': 'linear-gradient(180deg, #24506a 0%, #181f2a 100%)',
+      'Dacoit': 'linear-gradient(180deg, #6e4d3b 0%, #231a15 100%)',
+      'Project Hail Mary': 'linear-gradient(180deg, #7e8e1c 0%, #232a13 100%)'
+    };
+
+    // Set background color based on movie
+    if (movie && MOVIE_COLORS[movie]) {
+      document.body.style.background = MOVIE_COLORS[movie];
+    }
+
+    // Fix vertical poster look for Booth Bangla (if needed)
+    // If you have a poster image here, you can add a class or inline style to adjust object-fit/height
+    // Example: document.querySelector('.movie-poster').style.objectFit = 'cover';
+    // But since this page does not show the poster, no action needed here.
+  </script>
+</body>
+</html>
