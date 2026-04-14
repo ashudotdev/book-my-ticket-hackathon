@@ -11,7 +11,7 @@ const API_BASE =
 // Set Socket.IO URL
 const SOCKET_URL = API_BASE || undefined;
 // Connect to Socket.IO server
-const socket = io(SOCKET_URL);
+// const socket = io(SOCKET_URL);
 
 let seatMap = {};
 
