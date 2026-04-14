@@ -1,73 +1,337 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Stellar Seat Booking</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-      @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap");
-      body {
-        font-family: "Outfit", sans-serif;
-        background-color: #0f172a;
-        color: #f8fafc;
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Movie Ticket Booking</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Outfit', sans-serif;
+      background: #111;
+      color: #fff;
+      min-height: 100vh;
+      transition: background 0.5s;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: auto;
+      padding: 32px 0 0 0;
+    }
+
+    .movie-list {
+      display: flex;
+      flex-wrap: wrap;
+      flex-direction: row;
+      gap: 32px;
+      margin-top: 48px;
+      justify-content: center;
+    }
+
+    .movie-card {
+      background: #fff;
+      border-radius: 24px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.13);
+      padding: 24px 32px 18px 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 300px;
+      cursor: pointer;
+      transition: transform 0.13s, box-shadow 0.13s;
+      color: #111;
+    }
+
+    .movie-card:hover {
+      transform: translateY(-4px) scale(1.03);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    }
+
+    .movie-poster {
+      width: 160px;
+      height: 260px;
+      object-fit: cover;
+      object-position: center center;
+      border-radius: 18px;
+      margin-bottom: 18px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+      transition: box-shadow 0.2s, width 0.2s, height 0.2s;
+      background: #222;
+    }
+
+    .movie-card:hover .movie-poster {
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
+    }
+
+    .movie-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+      text-align: center;
+      color: #111;
+    }
+
+    .movie-desc {
+      font-size: 1rem;
+      color: #444;
+      text-align: center;
+      margin-bottom: 0.5rem;
+      min-height: 38px;
+    }
+
+    .hide {
+      display: none !important;
+    }
+
+    .poster {
+      width: 100%;
+      max-width: 520px;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+      border-radius: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      margin-bottom: 28px;
+      object-fit: cover;
+      object-position: center center;
+      height: 320px;
+      max-height: 45vw;
+      background: #222;
+      transition: box-shadow 0.2s, height 0.2s, width 0.2s;
+      position: relative;
+      z-index: 1;
+    }
+    /* Gradient overlay for main page for readability */
+    #main-page::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      z-index: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.7) 100%);
+      opacity: 1;
+      transition: opacity 0.4s;
+      display: block;
+    }
+    #main-page {
+      position: relative;
+      z-index: 1;
+    }
+
+    .title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      text-align: center;
+      color: #fff;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      color: #bbb;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .timings {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 2rem;
+    }
+
+    .timing-btn {
+      background: #fff;
+      color: #222;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 24px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+    }
+
+    .timing-btn.selected, .timing-btn:hover {
+      background: #00ffe0;
+      color: #111;
+    }
+
+    .reservation-btn {
+      display: block;
+      width: 100%;
+      background: #fff;
+      color: #111;
+      border: none;
+      border-radius: 16px;
+      padding: 16px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin: 2rem 0 0 0;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .reservation-btn:active {
+      background: #eee;
+      color: #111;
+    }
+
+    @media (max-width: 1200px) {
+      .container {
+        max-width: 98vw;
       }
-    </style>
-  </head>
-  <body
-    class="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"
-  >
-    <div
-      class="max-w-7xl w-full bg-slate-800/80 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-slate-700/50"
-    >
-      <div class="text-center mb-10">
-        <h1
-          class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 mb-4 tracking-tight"
-        >
-          ChaiCode Cinema - Now Showing<br />
-          <br />
-          <span class="text-red-400">
-            <span class="font-bold">Dhurandhar The Revenge</span>
-          </span>
-        </h1>
-        <p class="text-slate-400 text-lg">Jassi ko ghar ki yaad kyu nhi aai?</p>
-      </div>
 
-      <div class="flex justify-center mb-10">
-        <div
-          class="bg-slate-900/50 rounded-full px-6 py-3 border border-slate-700 flex gap-8 items-center"
-        >
-          <div class="flex items-center gap-3">
-            <div
-              class="w-4 h-4 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.6)]"
-            ></div>
-            <span class="text-slate-300 font-medium tracking-wide"
-              >Available</span
-            >
-          </div>
-          <div class="w-px h-6 bg-slate-700"></div>
-          <div class="flex items-center gap-3">
-            <div
-              class="w-4 h-4 rounded-full bg-rose-500/20 border border-rose-500/50"
-            ></div>
-            <span class="text-slate-400 font-medium tracking-wide">Booked</span>
-          </div>
-        </div>
-      </div>
+      .movie-card {
+        width: 40vw;
+        min-width: 220px;
+      }
+    }
 
-      <div class="flex justify-center">
-        <div
-          class="bg-slate-900/40 p-8 rounded-2xl border border-slate-700/50 shadow-inner"
-        >
-          <table
-            id="tbl"
-            class="border-separate border-spacing-4 mx-auto"
-          ></table>
-        </div>
+    @media (max-width: 800px) {
+      .movie-list {
+        gap: 18px;
+      }
+
+      .movie-card {
+        width: 90vw;
+        min-width: 180px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        max-width: 100vw;
+      }
+
+      .movie-card {
+        width: 98vw;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Movie selection screen -->
+  <div class="container" id="movie-select">
+    <h1 style="text-align:center;font-size:2.2rem;margin-bottom:1.5rem;">Select a Movie</h1>
+    <div class="movie-list">
+      <div class="movie-card" data-movie="dhurandhar">
+        <img class="movie-poster" src="assets/dhurandhar2.webp" alt="Dhurandhar the Revenge">
+        <div class="movie-title">Dhurandhar the Revenge</div>
+        <div class="movie-desc">A tale of vengeance and redemption in the heartland.</div>
+      </div>
+      <div class="movie-card" data-movie="boothbangla">
+        <img class="movie-poster" src="assets/bhootbangla.jpg" alt="Booth Bangla">
+        <div class="movie-title">Booth Bangla</div>
+        <div class="movie-desc">A haunted house, a chilling secret, and a night to remember.</div>
+      </div>
+      <div class="movie-card" data-movie="dacoit">
+        <img class="movie-poster" src="assets/dacoit.webp" alt="Dacoit">
+        <div class="movie-title">Dacoit</div>
+        <div class="movie-desc">A notorious outlaw faces his destiny in the wild west.</div>
+      </div>
+      <div class="movie-card" data-movie="hailmary">
+        <img class="movie-poster" src="assets/projecthailmary.jpg" alt="Project Hail Mary">
+        <div class="movie-title">Project Hail Mary</div>
+        <div class="movie-desc">A lone astronaut must save humanity from extinction.</div>
       </div>
     </div>
+  </div>
+  <!-- Main page (showtime selection) -->
+  <div class="container hide" id="main-page">
+    <button id="back-btn" style="background:none;border:none;color:#00ffe0;font-size:1.1rem;cursor:pointer;margin-bottom:18px;position:absolute;left:32px;top:32px;z-index:2;">← Back</button>
+    <img id="main-poster" src="" class="poster" alt="Movie Poster">
+    <div class="title" id="main-title"></div>
+    <div class="subtitle" id="main-subtitle"></div>
+    <div class="subtitle" style="font-size:1rem;color:#fff;opacity:0.7;margin-bottom:2.2rem;" id="main-desc"></div>
+    <div class="timings">
+      <button class="timing-btn" data-time="9am">9:00 AM</button>
+      <button class="timing-btn" data-time="2pm">2:00 PM</button>
+      <button class="timing-btn" data-time="7pm">7:00 PM</button>
+    </div>
+    <button class="reservation-btn" id="reservation-btn">Reservation</button>
+  </div>
+  <script>
+    // Movie data
+    const MOVIES = {
+      dhurandhar: {
+        poster: "assets/dhurandhar2.webp",
+        title: "Dhurandhar the Revenge",
+        subtitle: "A tale of vengeance and redemption in the heartland",
+        desc: "Dhurandhar The Revenge introduces Jaskirat Singh Rangi, tracing the chain of events that compel him to become Hamza Ali Mazari, and follows his rise as he operates deep inside Pakistan.... <span style='color:#00ffe0;cursor:pointer;'>read more</span>",
+        bg: "#c31510" // new red
+      },
+      boothbangla: {
+        poster: "assets/bhootbangla.jpg",
+        title: "Booth Bangla",
+        subtitle: "A Haunted House Mystery",
+        desc: "A haunted house, a chilling secret, and a night to remember... <span style='color:#00ffe0;cursor:pointer;'>read more</span>",
+        bg: "#418bb5" // new blue
+      },
+      dacoit: {
+        poster: "assets/dacoit.webp",
+        title: "Dacoit",
+        subtitle: "The Outlaw's Destiny",
+        desc: "A notorious outlaw faces his destiny in the wild west... <span style='color:#00ffe0;cursor:pointer;'>read more</span>",
+        bg: "#bb8269" // new brown
+      },
+      hailmary: {
+        poster: "assets/projecthailmary.jpg",
+        title: "Project Hail Mary",
+        subtitle: "A Lone Astronaut's Mission",
+        desc: "A lone astronaut must save humanity from extinction... <span style='color:#00ffe0;cursor:pointer;'>read more</span>",
+        bg: "#AFCD2F" // new green-yellow
+      }
+    };
+    let selectedMovie = null;
+    let selectedTime = null;
+    // Movie selection logic
+    document.querySelectorAll('.movie-card').forEach(card => {
+      card.addEventListener('click', function () {
+        selectedMovie = this.getAttribute('data-movie');
+        // Fill main page with movie info
+        document.getElementById('main-poster').src = MOVIES[selectedMovie].poster;
+        document.getElementById('main-title').textContent = MOVIES[selectedMovie].title;
+        document.getElementById('main-subtitle').textContent = MOVIES[selectedMovie].subtitle;
+        document.getElementById('main-desc').innerHTML = MOVIES[selectedMovie].desc;
+        document.getElementById('movie-select').classList.add('hide');
+        document.getElementById('main-page').classList.remove('hide');
+        // Change background color based on movie
+        document.body.style.background = MOVIES[selectedMovie].bg;
+      });
+    });
+    // Show time selection logic
+    document.querySelectorAll('.timing-btn').forEach(btn => {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.timing-btn').forEach(b => b.classList.remove('selected'));
+        this.classList.add('selected');
+        selectedTime = this.getAttribute('data-time');
+      });
+    });
+    document.getElementById('reservation-btn').addEventListener('click', function () {
+      if (!selectedTime) {
+        alert('Please select a show time!');
+        return;
+      }
+      // Go to seat selection, passing movie and time
+      window.location.href = `theater-seats.html?movie=${encodeURIComponent(MOVIES[selectedMovie].title)}&time=${encodeURIComponent(selectedTime)}`;
+    });
+    // Add back button logic
+    document.getElementById('back-btn').addEventListener('click', function() {
+      document.getElementById('main-page').classList.add('hide');
+      document.getElementById('movie-select').classList.remove('hide');
+      document.body.style.background = '#111';
+      // Reset selected time
+      selectedTime = null;
+      document.querySelectorAll('.timing-btn').forEach(b => b.classList.remove('selected'));
+    });
+  </script>
+</body>
 
-    <!-- Frontend logic initialized strictly through Vite Module -->
-    <script type="module" src="/main.js"></script>
-  </body>
 </html>
