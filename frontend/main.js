@@ -39,7 +39,7 @@ async function run() {
         const id = j[i].id;
         const name = prompt("Enter your name");
         if (!name) return;
-        const res = await fetch(`/${id}/${name}`, { method: "PUT" });
+        const res = await fetch(`/book/legacy/${id}/${name}`, { method: "PUT" });
         const data = await res.json();
         if (data.error) {
           alert("FAILED! Couldn't book! already booked.");

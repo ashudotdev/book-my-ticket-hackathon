@@ -43,7 +43,7 @@ app.get("/seats", async (req, res) => {
 });
 
 //book a seat give the seatId and your name
-app.put("/:id/:name", async (req, res) => {
+app.put("/book/legacy/:id/:name", async (req, res) => {
   try {
     const id = req.params.id;
     const name = req.params.name;
