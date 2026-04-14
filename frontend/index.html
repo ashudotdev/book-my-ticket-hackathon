@@ -1,337 +1,980 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Movie Ticket Booking</title>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <title>ChaiCode Cinema — Book Your Tickets</title>
+  <meta name="description" content="Book movie tickets online at ChaiCode Cinema. Now showing: Dhurandhar, Booth Bangla, Dacoit, Project Hail Mary.">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f14;
+      --surface: rgba(255,255,255,0.05);
+      --border: rgba(255,255,255,0.08);
+      --text: #e8e8ec;
+      --text-muted: rgba(255,255,255,0.45);
+      --accent: #00ffe0;
+      --accent-dim: rgba(0,255,224,0.15);
+      --radius: 16px;
+      --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
     body {
-      margin: 0;
-      font-family: 'Outfit', sans-serif;
-      background: #111;
-      color: #fff;
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
-      transition: background 0.5s;
+      overflow-x: hidden;
+      transition: background 0.6s ease;
     }
 
-    .container {
+    .view { display: none; }
+    .view.active { display: block; animation: fadeUp 0.4s ease; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ══════════════════════════════════════════════
+       VIEW 1 — MOVIE GRID (Homepage)
+       ══════════════════════════════════════════════ */
+
+    .v1-header {
+      text-align: center;
+      padding: 48px 20px 12px 20px;
+    }
+    .v1-logo {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .v1-title {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .v1-subtitle {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .movie-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 20px;
       max-width: 1100px;
-      margin: auto;
-      padding: 32px 0 0 0;
-    }
-
-    .movie-list {
-      display: flex;
-      flex-wrap: wrap;
-      flex-direction: row;
-      gap: 32px;
-      margin-top: 48px;
-      justify-content: center;
+      margin: 36px auto 60px auto;
+      padding: 0 20px;
     }
 
     .movie-card {
-      background: #fff;
-      border-radius: 24px;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.13);
-      padding: 24px 32px 18px 32px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      width: 300px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
       cursor: pointer;
-      transition: transform 0.13s, box-shadow 0.13s;
-      color: #111;
+      transition: all var(--transition);
+      position: relative;
     }
-
     .movie-card:hover {
-      transform: translateY(-4px) scale(1.03);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+      transform: translateY(-6px);
+      border-color: rgba(255,255,255,0.15);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.4);
     }
-
-    .movie-poster {
-      width: 160px;
-      height: 260px;
-      object-fit: cover;
-      object-position: center center;
-      border-radius: 18px;
-      margin-bottom: 18px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
-      transition: box-shadow 0.2s, width 0.2s, height 0.2s;
-      background: #222;
-    }
-
-    .movie-card:hover .movie-poster {
-      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
-    }
-
-    .movie-title {
-      font-size: 1.3rem;
-      font-weight: 700;
-      margin-bottom: 0.3rem;
-      text-align: center;
-      color: #111;
-    }
-
-    .movie-desc {
-      font-size: 1rem;
-      color: #444;
-      text-align: center;
-      margin-bottom: 0.5rem;
-      min-height: 38px;
-    }
-
-    .hide {
-      display: none !important;
-    }
-
-    .poster {
+    .movie-card-poster {
       width: 100%;
-      max-width: 520px;
-      display: block;
-      margin-left: auto;
-      margin-right: auto;
-      border-radius: 24px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-      margin-bottom: 28px;
+      height: 380px;
       object-fit: cover;
-      object-position: center center;
-      height: 320px;
-      max-height: 45vw;
-      background: #222;
-      transition: box-shadow 0.2s, height 0.2s, width 0.2s;
-      position: relative;
-      z-index: 1;
-    }
-    /* Gradient overlay for main page for readability */
-    #main-page::before {
-      content: "";
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      pointer-events: none;
-      z-index: 0;
-      background: linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.7) 100%);
-      opacity: 1;
-      transition: opacity 0.4s;
       display: block;
+      transition: transform 0.4s ease;
     }
-    #main-page {
-      position: relative;
-      z-index: 1;
+    .movie-card:hover .movie-card-poster {
+      transform: scale(1.03);
+    }
+    .movie-card-info {
+      padding: 18px 20px 20px 20px;
+    }
+    .movie-card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .movie-card-desc {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .movie-card-badge {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(8px);
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
+      border: 1px solid rgba(255,255,255,0.1);
     }
 
-    .title {
-      font-size: 2rem;
+    /* ══════════════════════════════════════════════
+       VIEW 2 — MOVIE DETAIL + SHOWTIME
+       ══════════════════════════════════════════════ */
+
+    .v2-wrapper {
+      min-height: 100vh;
+      position: relative;
+    }
+
+    .v2-hero {
+      position: relative;
+      width: 100%;
+      height: 55vh;
+      min-height: 340px;
+      overflow: hidden;
+    }
+    .v2-hero-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 20%;
+      display: block;
+    }
+    .v2-hero-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg,
+        transparent 0%,
+        rgba(0,0,0,0.1) 40%,
+        rgba(0,0,0,0.7) 75%,
+        var(--bg) 100%
+      );
+    }
+
+    .v2-back {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 10;
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #fff;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .v2-back:hover { background: rgba(0,0,0,0.6); }
+
+    .v2-content {
+      max-width: 680px;
+      margin: -60px auto 0 auto;
+      padding: 0 24px 60px 24px;
+      position: relative;
+      z-index: 5;
+    }
+    .v2-movie-title {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 8px;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.4);
+    }
+    .v2-movie-subtitle {
+      font-size: 1rem;
+      color: rgba(255,255,255,0.5);
+      font-weight: 400;
+      font-style: italic;
+      margin-bottom: 20px;
+    }
+    .v2-movie-desc {
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.65);
+      line-height: 1.7;
+      margin-bottom: 32px;
+    }
+
+    .v2-section-label {
+      font-size: 0.68rem;
       font-weight: 700;
-      margin-bottom: 0.5rem;
-      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: rgba(255,255,255,0.3);
+      margin-bottom: 14px;
+    }
+
+    .v2-timings {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+    .v2-time-btn {
+      background: var(--surface);
+      color: rgba(255,255,255,0.7);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 28px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .v2-time-btn:hover {
+      border-color: rgba(255,255,255,0.25);
+      background: rgba(255,255,255,0.08);
       color: #fff;
     }
-
-    .subtitle {
-      font-size: 1.1rem;
-      color: #bbb;
-      text-align: center;
-      margin-bottom: 1.5rem;
+    .v2-time-btn.selected {
+      background: var(--accent);
+      color: #0a0a0f;
+      border-color: var(--accent);
+      box-shadow: 0 4px 20px rgba(0,255,224,0.25);
+    }
+    .v2-time-btn .time-seats {
+      display: block;
+      font-size: 0.6rem;
+      font-weight: 500;
+      opacity: 0.6;
+      margin-top: 3px;
     }
 
-    .timings {
+    .v2-reserve-btn {
+      width: 100%;
+      padding: 18px;
+      border: none;
+      border-radius: 14px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+      letter-spacing: 0.5px;
+      background: linear-gradient(135deg, #00ffe0, #00c4a7);
+      color: #0a0a0f;
+    }
+    .v2-reserve-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0,255,224,0.3);
+    }
+    .v2-reserve-btn:active { transform: scale(0.98); }
+    .v2-reserve-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* ══════════════════════════════════════════════
+       VIEW 3 — THEATER SEATS
+       ══════════════════════════════════════════════ */
+
+    .v3-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      background: rgba(0,0,0,0.35);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      position: sticky;
+      top: 0;
+      z-index: 200;
+    }
+    .v3-back {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.18);
+      color: #fff;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 8px 18px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: inherit;
+    }
+    .v3-back:hover { background: rgba(255,255,255,0.18); }
+
+    .v3-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.88rem;
+    }
+    .v3-badge-name { font-weight: 700; }
+    .v3-badge-sep { width: 1px; height: 16px; background: rgba(255,255,255,0.2); }
+    .v3-badge-time {
+      background: rgba(255,255,255,0.12);
+      font-weight: 700;
+      font-size: 0.72rem;
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+
+    .v3-theater {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 20px 16px 150px 16px;
+    }
+
+    /* Screen */
+    .v3-screen-wrap { text-align: center; margin-bottom: 36px; }
+    .v3-screen {
+      width: 70%;
+      max-width: 480px;
+      height: 5px;
+      margin: 0 auto 6px auto;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5) 15%, rgba(255,255,255,0.85) 50%, rgba(255,255,255,0.5) 85%, transparent);
+      border-radius: 50%;
+    }
+    .v3-screen-glow {
+      width: 80%;
+      max-width: 540px;
+      height: 45px;
+      margin: 0 auto;
+      background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.07), transparent 75%);
+    }
+    .v3-screen-lbl {
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      color: rgba(255,255,255,0.3);
+      margin-top: -14px;
+    }
+
+    /* Section Headers */
+    .sec-hdr {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin: 26px 0 12px 0;
+    }
+    .sec-hdr .ln { flex: 1; height: 1px; background: rgba(255,255,255,0.1); }
+    .sec-hdr .nm {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2.5px;
+      color: rgba(255,255,255,0.5);
+    }
+    .sec-hdr .pr {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.7);
+      background: rgba(255,255,255,0.08);
+      padding: 3px 10px;
+      border-radius: 12px;
+    }
+
+    /* Seat Rows */
+    .srow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 6px;
+    }
+    .srow-lbl {
+      width: 22px;
+      text-align: center;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.25);
+      flex-shrink: 0;
+    }
+    .srow-seats {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+    .aisle { width: 20px; flex-shrink: 0; }
+
+    /* Seats */
+    .st {
+      width: 36px;
+      height: 31px;
+      border-radius: 7px 7px 3px 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.6rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+      border: 1.5px solid transparent;
+      user-select: none;
+    }
+    .st.av {
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.2);
+      color: rgba(255,255,255,0.65);
+    }
+    .st.av:hover {
+      background: rgba(255,255,255,0.22);
+      border-color: rgba(255,255,255,0.45);
+      color: #fff;
+      transform: scale(1.15);
+      z-index: 2;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+    }
+    .st.bk {
+      background: rgba(0,0,0,0.22);
+      border-color: rgba(255,255,255,0.05);
+      cursor: not-allowed;
+      color: transparent;
+    }
+    .st.bk::after {
+      content: '×';
+      position: absolute;
+      font-size: 1rem;
+      font-weight: 800;
+      color: rgba(255,70,60,0.35);
+    }
+    .st.sl {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #0a0a0f;
+      box-shadow: 0 0 16px rgba(0,255,224,0.35), 0 4px 12px rgba(0,0,0,0.2);
+      transform: scale(1.12);
+      z-index: 2;
+    }
+
+    /* Legend */
+    .v3-legend {
       display: flex;
       justify-content: center;
-      gap: 16px;
-      margin-bottom: 2rem;
+      gap: 24px;
+      margin: 30px 0 16px 0;
+      padding: 12px 20px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.06);
+      backdrop-filter: blur(6px);
     }
+    .v3-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.5);
+    }
+    .sw { width: 22px; height: 18px; border-radius: 5px 5px 2px 2px; }
+    .sw.sw-av { background: rgba(255,255,255,0.1); border: 1.5px solid rgba(255,255,255,0.2); }
+    .sw.sw-bk { background: rgba(0,0,0,0.22); border: 1.5px solid rgba(255,255,255,0.05); position: relative; }
+    .sw.sw-bk::after { content: '×'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 800; color: rgba(255,70,60,0.45); }
+    .sw.sw-sl { background: var(--accent); border: 1.5px solid var(--accent); box-shadow: 0 0 6px rgba(0,255,224,0.25); }
 
-    .timing-btn {
-      background: #fff;
-      color: #222;
+    /* Buy Bar */
+    .v3-buybar {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      z-index: 300;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .v3-buybar-inner {
+      max-width: 820px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+    }
+    .v3-buy-info { display: flex; flex-direction: column; gap: 2px; }
+    .v3-buy-lbl { font-size: 0.8rem; color: rgba(255,255,255,0.4); font-weight: 500; }
+    .v3-buy-dtl { font-size: 1rem; font-weight: 700; color: #fff; }
+    .v3-buy-btn {
+      background: linear-gradient(135deg, #00ffe0, #00c4a7);
+      color: #0a0a0f;
       border: none;
       border-radius: 12px;
-      padding: 12px 24px;
-      font-size: 1.1rem;
-      font-weight: 700;
+      padding: 14px 34px;
+      font-size: 0.95rem;
+      font-weight: 800;
       cursor: pointer;
-      transition: background 0.2s, color 0.2s;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+      transition: all 0.2s;
+      font-family: inherit;
     }
+    .v3-buy-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,255,224,0.3); }
+    .v3-buy-btn:active { transform: scale(0.97); }
+    .v3-buy-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; box-shadow: none; }
 
-    .timing-btn.selected, .timing-btn:hover {
-      background: #00ffe0;
-      color: #111;
+    /* Loading */
+    .v3-loading { text-align: center; padding: 50px 20px; }
+    .v3-spinner {
+      width: 32px; height: 32px;
+      border: 3px solid rgba(255,255,255,0.1);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 14px auto;
     }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    .reservation-btn {
-      display: block;
-      width: 100%;
-      background: #fff;
-      color: #111;
-      border: none;
-      border-radius: 16px;
-      padding: 16px;
-      font-size: 1.2rem;
-      font-weight: 700;
-      margin: 2rem 0 0 0;
-      cursor: pointer;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-      transition: background 0.2s, color 0.2s;
-    }
-
-    .reservation-btn:active {
-      background: #eee;
-      color: #111;
-    }
-
-    @media (max-width: 1200px) {
-      .container {
-        max-width: 98vw;
-      }
-
-      .movie-card {
-        width: 40vw;
-        min-width: 220px;
-      }
-    }
+    /* ══════════════════════════════════════════════
+       RESPONSIVE
+       ══════════════════════════════════════════════ */
 
     @media (max-width: 800px) {
-      .movie-list {
-        gap: 18px;
-      }
-
-      .movie-card {
-        width: 90vw;
-        min-width: 180px;
-      }
+      .movie-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+      .movie-card-poster { height: 280px; }
+      .v2-movie-title { font-size: 1.6rem; }
     }
-
-    @media (max-width: 600px) {
-      .container {
-        max-width: 100vw;
-      }
-
-      .movie-card {
-        width: 98vw;
-      }
+    @media (max-width: 700px) {
+      .st { width: 30px; height: 26px; font-size: 0.5rem; }
+      .aisle { width: 14px; }
+      .srow-lbl { width: 18px; font-size: 0.58rem; }
+      .srow-seats { gap: 3px; }
+      .v3-theater { padding: 14px 8px 150px 8px; }
+    }
+    @media (max-width: 550px) {
+      .movie-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 0 12px; }
+      .movie-card-poster { height: 220px; }
+      .movie-card-info { padding: 12px 14px 14px 14px; }
+      .movie-card-title { font-size: 0.92rem; }
+      .movie-card-desc { font-size: 0.72rem; }
+      .v1-title { font-size: 1.4rem; }
+      .v2-hero { height: 45vh; min-height: 260px; }
+      .v2-content { padding: 0 16px 40px 16px; }
+      .v2-movie-title { font-size: 1.35rem; }
+      .st { width: 25px; height: 22px; font-size: 0.44rem; border-radius: 5px 5px 2px 2px; }
+      .aisle { width: 10px; }
+      .srow-seats { gap: 2px; }
+      .srow { margin-bottom: 4px; }
+      .v3-buybar-inner { padding: 12px 16px; }
     }
   </style>
 </head>
-
 <body>
-  <!-- Movie selection screen -->
-  <div class="container" id="movie-select">
-    <h1 style="text-align:center;font-size:2.2rem;margin-bottom:1.5rem;">Select a Movie</h1>
-    <div class="movie-list">
-      <div class="movie-card" data-movie="dhurandhar">
-        <img class="movie-poster" src="assets/dhurandhar2.webp" alt="Dhurandhar the Revenge">
-        <div class="movie-title">Dhurandhar the Revenge</div>
-        <div class="movie-desc">A tale of vengeance and redemption in the heartland.</div>
+
+  <!-- ═══════════ VIEW 1: Movie Grid ═══════════ -->
+  <div class="view active" id="view-grid">
+    <div class="v1-header">
+      <div class="v1-logo">ChaiCode Cinema</div>
+      <h1 class="v1-title">Now Showing</h1>
+      <p class="v1-subtitle">Select a movie to book tickets</p>
+    </div>
+    <div class="movie-grid" id="movie-grid"></div>
+  </div>
+
+  <!-- ═══════════ VIEW 2: Movie Detail ═══════════ -->
+  <div class="view" id="view-detail">
+    <div class="v2-wrapper">
+      <div class="v2-hero">
+        <img class="v2-hero-img" id="v2-poster" src="" alt="">
+        <div class="v2-hero-overlay"></div>
+        <button class="v2-back" id="v2-back">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8L10 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Back
+        </button>
       </div>
-      <div class="movie-card" data-movie="boothbangla">
-        <img class="movie-poster" src="assets/bhootbangla.jpg" alt="Booth Bangla">
-        <div class="movie-title">Booth Bangla</div>
-        <div class="movie-desc">A haunted house, a chilling secret, and a night to remember.</div>
-      </div>
-      <div class="movie-card" data-movie="dacoit">
-        <img class="movie-poster" src="assets/dacoit.webp" alt="Dacoit">
-        <div class="movie-title">Dacoit</div>
-        <div class="movie-desc">A notorious outlaw faces his destiny in the wild west.</div>
-      </div>
-      <div class="movie-card" data-movie="hailmary">
-        <img class="movie-poster" src="assets/projecthailmary.jpg" alt="Project Hail Mary">
-        <div class="movie-title">Project Hail Mary</div>
-        <div class="movie-desc">A lone astronaut must save humanity from extinction.</div>
+      <div class="v2-content">
+        <h2 class="v2-movie-title" id="v2-title"></h2>
+        <p class="v2-movie-subtitle" id="v2-subtitle"></p>
+        <p class="v2-movie-desc" id="v2-desc"></p>
+        <div class="v2-section-label">Select Showtime</div>
+        <div class="v2-timings" id="v2-timings"></div>
+        <button class="v2-reserve-btn" id="v2-reserve" disabled>Select Seats →</button>
       </div>
     </div>
   </div>
-  <!-- Main page (showtime selection) -->
-  <div class="container hide" id="main-page">
-    <button id="back-btn" style="background:none;border:none;color:#00ffe0;font-size:1.1rem;cursor:pointer;margin-bottom:18px;position:absolute;left:32px;top:32px;z-index:2;">← Back</button>
-    <img id="main-poster" src="" class="poster" alt="Movie Poster">
-    <div class="title" id="main-title"></div>
-    <div class="subtitle" id="main-subtitle"></div>
-    <div class="subtitle" style="font-size:1rem;color:#fff;opacity:0.7;margin-bottom:2.2rem;" id="main-desc"></div>
-    <div class="timings">
-      <button class="timing-btn" data-time="9am">9:00 AM</button>
-      <button class="timing-btn" data-time="2pm">2:00 PM</button>
-      <button class="timing-btn" data-time="7pm">7:00 PM</button>
+
+  <!-- ═══════════ VIEW 3: Theater Seats ═══════════ -->
+  <div class="view" id="view-seats">
+    <div class="v3-topbar">
+      <button class="v3-back" id="v3-back">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8L10 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Back
+      </button>
+      <div class="v3-badge" id="v3-badge"></div>
     </div>
-    <button class="reservation-btn" id="reservation-btn">Reservation</button>
+    <div class="v3-theater">
+      <div class="v3-screen-wrap">
+        <div class="v3-screen"></div>
+        <div class="v3-screen-glow"></div>
+        <div class="v3-screen-lbl">screen this way</div>
+      </div>
+      <div id="v3-seats-container">
+        <div class="v3-loading">
+          <div class="v3-spinner"></div>
+          <div style="font-size:0.85rem;color:rgba(255,255,255,0.3);">Loading seats…</div>
+        </div>
+      </div>
+      <div class="v3-legend">
+        <div class="v3-legend-item"><div class="sw sw-av"></div>Available</div>
+        <div class="v3-legend-item"><div class="sw sw-bk"></div>Booked</div>
+        <div class="v3-legend-item"><div class="sw sw-sl"></div>Selected</div>
+      </div>
+    </div>
+    <div class="v3-buybar">
+      <div class="v3-buybar-inner">
+        <div class="v3-buy-info">
+          <span class="v3-buy-lbl" id="v3-buy-lbl">Tap a seat to select</span>
+          <span class="v3-buy-dtl" id="v3-buy-dtl">&nbsp;</span>
+        </div>
+        <button class="v3-buy-btn" id="v3-buy-btn" disabled>Book Now</button>
+      </div>
+    </div>
   </div>
+
   <script>
-    // Movie data
+    // ═══════════════════════════════════════
+    // DATA
+    // ═══════════════════════════════════════
+
     const MOVIES = {
       dhurandhar: {
-        poster: "assets/dhurandhar2.webp",
-        title: "Dhurandhar the Revenge",
-        subtitle: "A tale of vengeance and redemption in the heartland",
-        desc: "Dhurandhar The Revenge introduces Jaskirat Singh Rangi, tracing the chain of events that compel him to become Hamza Ali Mazari, and follows his rise as he operates deep inside Pakistan.... <span style='color:#00ffe0;cursor:pointer;'>read more</span>",
-        bg: "#c31510" // new red
+        key: 'dhurandhar',
+        poster: 'assets/dhurandhar2.webp',
+        title: 'Dhurandhar the Revenge',
+        subtitle: 'A tale of vengeance and redemption in the heartland',
+        desc: 'Dhurandhar The Revenge introduces Jaskirat Singh Rangi, tracing the chain of events that compel him to become Hamza Ali Mazari, and follows his rise as he operates deep inside Pakistan. An action-packed saga of loyalty, betrayal, and revenge.',
+        bg: 'linear-gradient(160deg, #8b1a1a 0%, #3d0c0c 40%, #1a0606 100%)',
+        badge: 'Action'
       },
       boothbangla: {
-        poster: "assets/bhootbangla.jpg",
-        title: "Booth Bangla",
-        subtitle: "A Haunted House Mystery",
-        desc: "A haunted house, a chilling secret, and a night to remember... <span style='color:#00ffe0;cursor:pointer;'>read more</span>",
-        bg: "#418bb5" // new blue
+        key: 'boothbangla',
+        poster: 'assets/bhootbangla.jpg',
+        title: 'Booth Bangla',
+        subtitle: 'A Haunted House Mystery',
+        desc: 'A haunted house, a chilling secret, and a night to remember. When a group of friends enters the notorious Booth Bangla, they discover horrors beyond imagination. Will they survive the night?',
+        bg: 'linear-gradient(160deg, #2a5f82 0%, #163547 40%, #0c1b26 100%)',
+        badge: 'Horror'
       },
       dacoit: {
-        poster: "assets/dacoit.webp",
-        title: "Dacoit",
+        key: 'dacoit',
+        poster: 'assets/dacoit.webp',
+        title: 'Dacoit',
         subtitle: "The Outlaw's Destiny",
-        desc: "A notorious outlaw faces his destiny in the wild west... <span style='color:#00ffe0;cursor:pointer;'>read more</span>",
-        bg: "#bb8269" // new brown
+        desc: 'A notorious outlaw faces his destiny in the wild frontier. Dacoit is a gripping tale of power, rebellion, and the thin line between justice and chaos. One man against the world.',
+        bg: 'linear-gradient(160deg, #8a5e3d 0%, #4a3020 40%, #1f150d 100%)',
+        badge: 'Thriller'
       },
       hailmary: {
-        poster: "assets/projecthailmary.jpg",
-        title: "Project Hail Mary",
+        key: 'hailmary',
+        poster: 'assets/projecthailmary.jpg',
+        title: 'Project Hail Mary',
         subtitle: "A Lone Astronaut's Mission",
-        desc: "A lone astronaut must save humanity from extinction... <span style='color:#00ffe0;cursor:pointer;'>read more</span>",
-        bg: "#AFCD2F" // new green-yellow
+        desc: 'A lone astronaut must save humanity from extinction. Stranded millions of miles from home with no memory of how he got there, Ryland Grace must solve an impossible scientific mystery before time runs out.',
+        bg: 'linear-gradient(160deg, #5a6e1a 0%, #2e3a0e 40%, #161c07 100%)',
+        badge: 'Sci-Fi'
       }
     };
-    let selectedMovie = null;
-    let selectedTime = null;
-    // Movie selection logic
-    document.querySelectorAll('.movie-card').forEach(card => {
-      card.addEventListener('click', function () {
-        selectedMovie = this.getAttribute('data-movie');
-        // Fill main page with movie info
-        document.getElementById('main-poster').src = MOVIES[selectedMovie].poster;
-        document.getElementById('main-title').textContent = MOVIES[selectedMovie].title;
-        document.getElementById('main-subtitle').textContent = MOVIES[selectedMovie].subtitle;
-        document.getElementById('main-desc').innerHTML = MOVIES[selectedMovie].desc;
-        document.getElementById('movie-select').classList.add('hide');
-        document.getElementById('main-page').classList.remove('hide');
-        // Change background color based on movie
-        document.body.style.background = MOVIES[selectedMovie].bg;
+
+    const TIME_SLOTS = [
+      { key: '9am', label: '9:00 AM', seats: 90 },
+      { key: '2pm', label: '2:00 PM', seats: 110 },
+      { key: '7pm', label: '7:00 PM', seats: 130 },
+    ];
+
+    const API_BASE = 'https://book-my-ticket-hackathon.onrender.com';
+
+    let currentMovie = null;
+    let currentTime = null;
+    let seatsData = [];
+    let selectedSeats = [];
+
+    // ═══════════════════════════════════════
+    // VIEW SWITCHING
+    // ═══════════════════════════════════════
+
+    function showView(id) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      window.scrollTo(0, 0);
+    }
+
+    // ═══════════════════════════════════════
+    // VIEW 1: Movie Grid
+    // ═══════════════════════════════════════
+
+    function renderGrid() {
+      const grid = document.getElementById('movie-grid');
+      grid.innerHTML = '';
+      Object.values(MOVIES).forEach(m => {
+        const card = document.createElement('div');
+        card.className = 'movie-card';
+        card.innerHTML = `
+          <div style="overflow:hidden;border-radius:var(--radius) var(--radius) 0 0;">
+            <img class="movie-card-poster" src="${m.poster}" alt="${m.title}" loading="lazy">
+          </div>
+          <div class="movie-card-badge">${m.badge}</div>
+          <div class="movie-card-info">
+            <div class="movie-card-title">${m.title}</div>
+            <div class="movie-card-desc">${m.subtitle}</div>
+          </div>
+        `;
+        card.addEventListener('click', () => openDetail(m.key));
+        grid.appendChild(card);
       });
-    });
-    // Show time selection logic
-    document.querySelectorAll('.timing-btn').forEach(btn => {
-      btn.addEventListener('click', function () {
-        document.querySelectorAll('.timing-btn').forEach(b => b.classList.remove('selected'));
-        this.classList.add('selected');
-        selectedTime = this.getAttribute('data-time');
+    }
+    renderGrid();
+
+    // ═══════════════════════════════════════
+    // VIEW 2: Movie Detail
+    // ═══════════════════════════════════════
+
+    function openDetail(movieKey) {
+      currentMovie = MOVIES[movieKey];
+      currentTime = null;
+      selectedSeats = [];
+
+      // Apply movie bg
+      document.body.style.background = currentMovie.bg;
+
+      // Fill detail
+      document.getElementById('v2-poster').src = currentMovie.poster;
+      document.getElementById('v2-poster').alt = currentMovie.title;
+      document.getElementById('v2-title').textContent = currentMovie.title;
+      document.getElementById('v2-subtitle').textContent = currentMovie.subtitle;
+      document.getElementById('v2-desc').textContent = currentMovie.desc;
+
+      // Render time buttons
+      const timingsDiv = document.getElementById('v2-timings');
+      timingsDiv.innerHTML = '';
+      TIME_SLOTS.forEach(ts => {
+        const btn = document.createElement('button');
+        btn.className = 'v2-time-btn';
+        btn.innerHTML = `${ts.label}<span class="time-seats">${ts.seats} seats</span>`;
+        btn.addEventListener('click', () => {
+          currentTime = ts;
+          timingsDiv.querySelectorAll('.v2-time-btn').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          document.getElementById('v2-reserve').disabled = false;
+        });
+        timingsDiv.appendChild(btn);
       });
+
+      document.getElementById('v2-reserve').disabled = true;
+      showView('view-detail');
+    }
+
+    document.getElementById('v2-back').addEventListener('click', () => {
+      document.body.style.background = 'var(--bg)';
+      showView('view-grid');
     });
-    document.getElementById('reservation-btn').addEventListener('click', function () {
-      if (!selectedTime) {
-        alert('Please select a show time!');
-        return;
+
+    document.getElementById('v2-reserve').addEventListener('click', () => {
+      if (!currentTime) return;
+      openSeats();
+    });
+
+    // ═══════════════════════════════════════
+    // VIEW 3: Theater Seats
+    // ═══════════════════════════════════════
+
+    function openSeats() {
+      selectedSeats = [];
+
+      // Badge
+      document.getElementById('v3-badge').innerHTML = `
+        <span class="v3-badge-name">${currentMovie.title}</span>
+        <span class="v3-badge-sep"></span>
+        <span class="v3-badge-time">${currentTime.label}</span>
+      `;
+
+      // Keep movie bg
+      document.body.style.background = currentMovie.bg;
+
+      showView('view-seats');
+      fetchSeats();
+    }
+
+    document.getElementById('v3-back').addEventListener('click', () => {
+      openDetail(currentMovie.key);
+    });
+
+    function fetchSeats() {
+      const container = document.getElementById('v3-seats-container');
+      container.innerHTML = '<div class="v3-loading"><div class="v3-spinner"></div><div style="font-size:0.85rem;color:rgba(255,255,255,0.3);">Loading seats…</div></div>';
+
+      fetch(`${API_BASE}/seats?movie=${currentMovie.key}&time=${currentTime.key}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.error) {
+            container.innerHTML = `<p style="color:#ff6b6b;text-align:center;padding:40px;">${data.error}</p>`;
+            return;
+          }
+          seatsData = data;
+          renderTheater();
+        })
+        .catch(err => {
+          container.innerHTML = `<p style="color:#ff6b6b;text-align:center;padding:40px;">Could not load seats.<br><small>${err}</small></p>`;
+        });
+    }
+
+    // Cinema layout: CLASSIC (cheap) near screen, ROYAL (expensive) far
+    function getCinemaLayout(total) {
+      if (total <= 90) return [
+        { name: 'CLASSIC', price: '₹150', rows: [{ l:4, r:4 },{ l:4, r:4 },{ l:4, r:4 }] },
+        { name: 'CLASSIC PLUS', price: '₹200', rows: [{ l:5, r:5 },{ l:5, r:5 },{ l:5, r:5 },{ l:5, r:5 }] },
+        { name: 'ROYAL', price: '₹300', rows: [{ l:7, r:6 },{ l:7, r:6 }] },
+      ];
+      if (total <= 110) return [
+        { name: 'CLASSIC', price: '₹150', rows: [{ l:5, r:5 },{ l:5, r:5 },{ l:5, r:5 }] },
+        { name: 'CLASSIC PLUS', price: '₹200', rows: [{ l:6, r:6 },{ l:6, r:6 },{ l:6, r:6 },{ l:6, r:6 }] },
+        { name: 'ROYAL', price: '₹300', rows: [{ l:8, r:8 },{ l:8, r:8 }] },
+      ];
+      return [
+        { name: 'CLASSIC', price: '₹150', rows: [{ l:5, r:5 },{ l:5, r:5 },{ l:5, r:5 },{ l:5, r:5 }] },
+        { name: 'CLASSIC PLUS', price: '₹200', rows: [{ l:6, r:6 },{ l:6, r:6 },{ l:6, r:6 },{ l:6, r:6 }] },
+        { name: 'ROYAL', price: '₹300', rows: [{ l:7, r:7 },{ l:7, r:7 },{ l:7, r:7 }] },
+      ];
+    }
+
+    function renderTheater() {
+      const container = document.getElementById('v3-seats-container');
+      container.innerHTML = '';
+      const layout = getCinemaLayout(seatsData.length);
+      let idx = 0, rowN = 0;
+
+      layout.forEach(sec => {
+        const hdr = document.createElement('div');
+        hdr.className = 'sec-hdr';
+        hdr.innerHTML = `<div class="ln"></div><span class="nm">${sec.name}</span><span class="pr">${sec.price}</span><div class="ln"></div>`;
+        container.appendChild(hdr);
+
+        sec.rows.forEach(rd => {
+          const row = document.createElement('div');
+          row.className = 'srow';
+
+          const ll = document.createElement('div');
+          ll.className = 'srow-lbl';
+          ll.textContent = String.fromCharCode(65 + rowN);
+          row.appendChild(ll);
+
+          const sr = document.createElement('div');
+          sr.className = 'srow-seats';
+
+          for (let i = 0; i < rd.l; i++) {
+            if (idx < seatsData.length) { sr.appendChild(mkSeat(seatsData[idx], i + 1)); idx++; }
+          }
+          const gap = document.createElement('div');
+          gap.className = 'aisle';
+          sr.appendChild(gap);
+          for (let i = 0; i < rd.r; i++) {
+            if (idx < seatsData.length) { sr.appendChild(mkSeat(seatsData[idx], rd.l + i + 1)); idx++; }
+          }
+
+          row.appendChild(sr);
+
+          const lr = document.createElement('div');
+          lr.className = 'srow-lbl';
+          lr.textContent = String.fromCharCode(65 + rowN);
+          row.appendChild(lr);
+
+          container.appendChild(row);
+          rowN++;
+        });
+      });
+
+      updateBuyBar();
+    }
+
+    function mkSeat(seat, col) {
+      const el = document.createElement('div');
+      el.className = 'st';
+      const n = String(col).padStart(2, '0');
+
+      if (seat.isbooked) {
+        el.classList.add('bk');
+        el.title = seat.name ? `Booked by ${seat.name}` : 'Booked';
+      } else if (selectedSeats.includes(seat.id)) {
+        el.classList.add('sl');
+        el.textContent = n;
+        el.title = `Seat ${seat.seat_number} — Selected`;
+      } else {
+        el.classList.add('av');
+        el.textContent = n;
+        el.title = `Seat ${seat.seat_number}`;
       }
-      // Go to seat selection, passing movie and time
-      window.location.href = `theater-seats.html?movie=${encodeURIComponent(MOVIES[selectedMovie].title)}&time=${encodeURIComponent(selectedTime)}`;
-    });
-    // Add back button logic
-    document.getElementById('back-btn').addEventListener('click', function() {
-      document.getElementById('main-page').classList.add('hide');
-      document.getElementById('movie-select').classList.remove('hide');
-      document.body.style.background = '#111';
-      // Reset selected time
-      selectedTime = null;
-      document.querySelectorAll('.timing-btn').forEach(b => b.classList.remove('selected'));
+
+      el.addEventListener('click', () => {
+        if (seat.isbooked) return;
+        if (selectedSeats.includes(seat.id)) {
+          selectedSeats = selectedSeats.filter(s => s !== seat.id);
+        } else {
+          selectedSeats.push(seat.id);
+        }
+        renderTheater();
+      });
+      return el;
+    }
+
+    function updateBuyBar() {
+      const lbl = document.getElementById('v3-buy-lbl');
+      const dtl = document.getElementById('v3-buy-dtl');
+      const btn = document.getElementById('v3-buy-btn');
+
+      if (selectedSeats.length === 0) {
+        lbl.textContent = 'Tap a seat to select';
+        dtl.innerHTML = '&nbsp;';
+        btn.disabled = true;
+      } else {
+        const names = selectedSeats.map(id => {
+          const s = seatsData.find(x => x.id === id);
+          return s ? `#${s.seat_number}` : `#${id}`;
+        });
+        lbl.textContent = `${selectedSeats.length} seat${selectedSeats.length > 1 ? 's' : ''} selected`;
+        dtl.textContent = names.join(', ');
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById('v3-buy-btn').addEventListener('click', async () => {
+      if (selectedSeats.length === 0) return;
+      const name = prompt('Enter your name to book:');
+      if (!name) return;
+
+      const btn = document.getElementById('v3-buy-btn');
+      btn.disabled = true;
+      btn.textContent = 'Booking…';
+
+      try {
+        let allGood = true;
+        for (const seatId of selectedSeats) {
+          const res = await fetch(`${API_BASE}/book/legacy/${seatId}/${encodeURIComponent(name)}?movie=${currentMovie.key}&time=${currentTime.key}`, { method: 'PUT' });
+          const data = await res.json();
+          if (data.error) {
+            alert(`Seat ${seatId}: ${data.error}`);
+            allGood = false;
+          }
+        }
+        if (allGood) alert('Booking successful! 🎬');
+        selectedSeats = [];
+        fetchSeats();
+      } catch (e) {
+        alert('Error: ' + e.message);
+      } finally {
+        btn.textContent = 'Book Now';
+      }
     });
   </script>
 </body>
-
 </html>
