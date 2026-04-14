@@ -7,6 +7,7 @@
 // SELECT 0 FROM generate_series(1, 20);
 
 
+import 'dotenv/config';
 import express from "express";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
@@ -31,12 +32,9 @@ import bookingRoutes from "./routes/bookingRoutes.mjs";
 app.use("/auth", authRoutes);
 app.use("/book", bookingRoutes);
 
-app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/index.html");
-});
 
-// Serve socket.io client
-app.use("/socket.io", express.static(__dirname + "/node_modules/socket.io/client-dist"));
+
+
 
 //get all seats
 app.get("/seats", async (req, res) => {
