@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ChaiCode Cinema — Book Your Tickets</title>
-  <meta name="description" content="Book movie tickets online at ChaiCode Cinema. Now showing: Dhurandhar, Booth Bangla, Dacoit, Project Hail Mary.">
+  <title>Ashudotdev Cinema — Book Your Tickets</title>
+  <meta name="description" content="Book movie tickets online at Ashudotdev Cinema. Now showing: Dhurandhar, Booth Bangla, Dacoit, Project Hail Mary.">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -643,6 +643,9 @@
     </div>
   </div>
 
+  <!-- Socket.IO Client -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
   <script>
     // ═══════════════════════════════════════
     // DATA
@@ -974,6 +977,40 @@
       } finally {
         btn.textContent = 'Book Now';
       }
+    });
+
+    // ═══════════════════════════════════════
+    // SOCKET.IO — Real-time seat updates
+    // ═══════════════════════════════════════
+
+    const socket = io(API_BASE, {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+    });
+
+    socket.on('connect', () => {
+      console.log('🔌 Socket connected:', socket.id);
+    });
+
+    socket.on('seatUpdated', ({ seatId, name, movie, time }) => {
+      console.log(`🪑 Seat ${seatId} booked by ${name} (${movie}/${time})`);
+      // If we're on the seats view for the same movie+time, refresh
+      if (
+        currentMovie && currentTime &&
+        document.getElementById('view-seats').classList.contains('active') &&
+        currentMovie.key === movie &&
+        currentTime.key === time
+      ) {
+        // Remove the just-booked seat from selection if we had it selected
+        const numId = Number(seatId);
+        selectedSeats = selectedSeats.filter(s => s !== numId);
+        fetchSeats();
+      }
+    });
+
+    socket.on('disconnect', () => {
+      console.log('🔌 Socket disconnected');
     });
   </script>
 </body>
