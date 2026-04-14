@@ -144,21 +144,21 @@
     }
 
     .timing-btn {
-      background: #222;
-      color: #fff;
+      background: #fff;
+      color: #222;
       border: none;
       border-radius: 12px;
       padding: 12px 24px;
       font-size: 1.1rem;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: background 0.2s, color 0.2s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.10);
     }
 
-    .timing-btn.selected,
-    .timing-btn:hover {
-      background: #9e9c9c;
-      color: #262424;
+    .timing-btn.selected, .timing-btn:hover {
+      background: #00ffe0;
+      color: #111;
     }
 
     .reservation-btn {
@@ -173,7 +173,7 @@
       font-weight: 700;
       margin: 2rem 0 0 0;
       cursor: pointer;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
       transition: background 0.2s, color 0.2s;
     }
 
@@ -245,6 +245,7 @@
   </div>
   <!-- Main page (showtime selection) -->
   <div class="container hide" id="main-page">
+    <button id="back-btn" style="background:none;border:none;color:#00ffe0;font-size:1.1rem;cursor:pointer;margin-bottom:18px;position:absolute;left:32px;top:32px;z-index:2;">← Back</button>
     <img id="main-poster" src="" class="poster" alt="Movie Poster">
     <div class="title" id="main-title"></div>
     <div class="subtitle" id="main-subtitle"></div>
@@ -321,6 +322,14 @@
       }
       // Go to seat selection, passing movie and time
       window.location.href = `theater-seats.html?movie=${encodeURIComponent(MOVIES[selectedMovie].title)}&time=${encodeURIComponent(selectedTime)}`;
+    });
+    // Add back button logic
+    document.getElementById('back-btn').addEventListener('click', function() {
+      document.getElementById('main-page').classList.add('hide');
+      document.getElementById('movie-select').classList.remove('hide');
+      // Optionally reset selected time
+      selectedTime = null;
+      document.querySelectorAll('.timing-btn').forEach(b => b.classList.remove('selected'));
     });
   </script>
 </body>

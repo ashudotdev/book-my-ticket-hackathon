@@ -1,23 +1,113 @@
--- 0. Create seats table (if starting fresh)
-CREATE TABLE IF NOT EXISTS seats (
+-- ============================================================
+-- Schema: 12 seat tables (4 movies × 3 time slots)
+-- Time slots:  9am → 90 seats,  2pm → 110 seats,  7pm → 130 seats
+-- Movies: dhurandhar, boothbangla, dacoit, hailmary
+-- ============================================================
+
+-- ===================== Dhurandhar the Revenge =====================
+CREATE TABLE IF NOT EXISTS seats_dhurandhar_9am (
     id SERIAL PRIMARY KEY,
+    seat_number INT NOT NULL,
+    name VARCHAR(255),
+    isbooked INT DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS seats_dhurandhar_2pm (
+    id SERIAL PRIMARY KEY,
+    seat_number INT NOT NULL,
+    name VARCHAR(255),
+    isbooked INT DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS seats_dhurandhar_7pm (
+    id SERIAL PRIMARY KEY,
+    seat_number INT NOT NULL,
     name VARCHAR(255),
     isbooked INT DEFAULT 0
 );
 
--- Seed initial seats if we have less than 24 seats
-DO $$
-DECLARE
-    current_count INT;
-BEGIN
-    SELECT COUNT(*) INTO current_count FROM seats;
-    IF current_count < 24 THEN
-        INSERT INTO seats (isbooked)
-        SELECT 0 FROM generate_series(1, 24 - current_count);
-    END IF;
-END $$;
+-- ===================== Booth Bangla =====================
+CREATE TABLE IF NOT EXISTS seats_boothbangla_9am (
+    id SERIAL PRIMARY KEY,
+    seat_number INT NOT NULL,
+    name VARCHAR(255),
+    isbooked INT DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS seats_boothbangla_2pm (
+    id SERIAL PRIMARY KEY,
+    seat_number INT NOT NULL,
+    name VARCHAR(255),
+    isbooked INT DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS seats_boothbangla_7pm (
+    id SERIAL PRIMARY KEY,
+    seat_number INT NOT NULL,
+    name VARCHAR(255),
+    isbooked INT DEFAULT 0
+);
 
--- 1. Create users table
+-- ===================== Dacoit =====================
+CREATE TABLE IF NOT EXISTS seats_dacoit_9am (
+    id SERIAL PRIMARY KEY,
+    seat_number INT NOT NULL,
+    name VARCHAR(255),
+    isbooked INT DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS seats_dacoit_2pm (
+    id SERIAL PRIMARY KEY,
+    seat_number INT NOT NULL,
+    name VARCHAR(255),
+    isbooked INT DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS seats_dacoit_7pm (
+    id SERIAL PRIMARY KEY,
+    seat_number INT NOT NULL,
+    name VARCHAR(255),
+    isbooked INT DEFAULT 0
+);
+
+-- ===================== Project Hail Mary =====================
+CREATE TABLE IF NOT EXISTS seats_hailmary_9am (
+    id SERIAL PRIMARY KEY,
+    seat_number INT NOT NULL,
+    name VARCHAR(255),
+    isbooked INT DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS seats_hailmary_2pm (
+    id SERIAL PRIMARY KEY,
+    seat_number INT NOT NULL,
+    name VARCHAR(255),
+    isbooked INT DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS seats_hailmary_7pm (
+    id SERIAL PRIMARY KEY,
+    seat_number INT NOT NULL,
+    name VARCHAR(255),
+    isbooked INT DEFAULT 0
+);
+
+-- ===================== Seed Seats =====================
+-- Only seed if the table is empty (idempotent)
+
+-- Dhurandhar: 9am=90, 2pm=110, 7pm=130
+DO $$ BEGIN IF (SELECT COUNT(*) FROM seats_dhurandhar_9am) = 0 THEN INSERT INTO seats_dhurandhar_9am (seat_number) SELECT g FROM generate_series(1, 90) g; END IF; END $$;
+DO $$ BEGIN IF (SELECT COUNT(*) FROM seats_dhurandhar_2pm) = 0 THEN INSERT INTO seats_dhurandhar_2pm (seat_number) SELECT g FROM generate_series(1, 110) g; END IF; END $$;
+DO $$ BEGIN IF (SELECT COUNT(*) FROM seats_dhurandhar_7pm) = 0 THEN INSERT INTO seats_dhurandhar_7pm (seat_number) SELECT g FROM generate_series(1, 130) g; END IF; END $$;
+
+-- Booth Bangla: 9am=90, 2pm=110, 7pm=130
+DO $$ BEGIN IF (SELECT COUNT(*) FROM seats_boothbangla_9am) = 0 THEN INSERT INTO seats_boothbangla_9am (seat_number) SELECT g FROM generate_series(1, 90) g; END IF; END $$;
+DO $$ BEGIN IF (SELECT COUNT(*) FROM seats_boothbangla_2pm) = 0 THEN INSERT INTO seats_boothbangla_2pm (seat_number) SELECT g FROM generate_series(1, 110) g; END IF; END $$;
+DO $$ BEGIN IF (SELECT COUNT(*) FROM seats_boothbangla_7pm) = 0 THEN INSERT INTO seats_boothbangla_7pm (seat_number) SELECT g FROM generate_series(1, 130) g; END IF; END $$;
+
+-- Dacoit: 9am=90, 2pm=110, 7pm=130
+DO $$ BEGIN IF (SELECT COUNT(*) FROM seats_dacoit_9am) = 0 THEN INSERT INTO seats_dacoit_9am (seat_number) SELECT g FROM generate_series(1, 90) g; END IF; END $$;
+DO $$ BEGIN IF (SELECT COUNT(*) FROM seats_dacoit_2pm) = 0 THEN INSERT INTO seats_dacoit_2pm (seat_number) SELECT g FROM generate_series(1, 110) g; END IF; END $$;
+DO $$ BEGIN IF (SELECT COUNT(*) FROM seats_dacoit_7pm) = 0 THEN INSERT INTO seats_dacoit_7pm (seat_number) SELECT g FROM generate_series(1, 130) g; END IF; END $$;
+
+-- Hail Mary: 9am=90, 2pm=110, 7pm=130
+DO $$ BEGIN IF (SELECT COUNT(*) FROM seats_hailmary_9am) = 0 THEN INSERT INTO seats_hailmary_9am (seat_number) SELECT g FROM generate_series(1, 90) g; END IF; END $$;
+DO $$ BEGIN IF (SELECT COUNT(*) FROM seats_hailmary_2pm) = 0 THEN INSERT INTO seats_hailmary_2pm (seat_number) SELECT g FROM generate_series(1, 110) g; END IF; END $$;
+DO $$ BEGIN IF (SELECT COUNT(*) FROM seats_hailmary_7pm) = 0 THEN INSERT INTO seats_hailmary_7pm (seat_number) SELECT g FROM generate_series(1, 130) g; END IF; END $$;
+
+-- ===================== Users Table =====================
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -25,11 +115,12 @@ CREATE TABLE IF NOT EXISTS users (
     password VARCHAR(255) NOT NULL
 );
 
--- 2. Create bookings table
--- This stores the individual bookings. We still lock the `seats` table to prevent concurrency issues.
+-- ===================== Bookings Table =====================
 CREATE TABLE IF NOT EXISTS bookings (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
-    seat_id INT REFERENCES seats(id) ON DELETE CASCADE,
-    UNIQUE(seat_id) -- A seat can only be booked once
+    movie VARCHAR(50) NOT NULL,
+    show_time VARCHAR(10) NOT NULL,
+    seat_id INT NOT NULL,
+    UNIQUE(movie, show_time, seat_id)
 );
