@@ -18,8 +18,8 @@ let seatMap = {};
 async function run() {
   const tbl = document.getElementById("tbl");
   tbl.innerHTML = "";
-  const res = await fetch(`${API_BASE}/seats`);
-  const resarray = await res.json();
+// Connect to Socket.IO server
+const socket = io(SOCKET_URL); // the proxy configuration in vite.config.js will handle directing socket.io to the backend
   const j = resarray.sort((a, b) => a.id - b.id);
   let tr;
   for (let i = 0; i < j.length; i++) {
