@@ -5,10 +5,17 @@ CREATE TABLE IF NOT EXISTS seats (
     isbooked INT DEFAULT 0
 );
 
--- Seed initial seats if the table is empty
-INSERT INTO seats (isbooked)
-SELECT 0 FROM generate_series(1, 20)
-WHERE NOT EXISTS (SELECT 1 FROM seats);
+-- Seed initial seats if we have less than 24 seats
+DO $$
+DECLARE
+    current_count INT;
+BEGIN
+    SELECT COUNT(*) INTO current_count FROM seats;
+    IF current_count < 24 THEN
+        INSERT INTO seats (isbooked)
+        SELECT 0 FROM generate_series(1, 24 - current_count);
+    END IF;
+END $$;
 
 -- 1. Create users table
 CREATE TABLE IF NOT EXISTS users (

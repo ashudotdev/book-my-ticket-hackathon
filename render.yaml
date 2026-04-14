@@ -4,7 +4,7 @@ services:
     env: node
     rootDir: backend
     buildCommand: npm install
-    startCommand: node index.mjs
+    startCommand: node migrate.mjs && node index.mjs
     envVars:
       - key: PORT
         value: 8080
