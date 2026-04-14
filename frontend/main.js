@@ -1,25 +1,21 @@
-
 import { io } from "socket.io-client";
 
+// Backend API base URL
+// In production (Vercel), point to the Render backend. In dev, empty string uses Vite proxy.
+const API_BASE = import.meta.env.PROD
+  ? "https://book-my-ticket-hackathon.onrender.com"
+  : "";
 
-// Set backend API base URL
-const API_BASE =
-  import.meta.env.PROD
-    ? "https://book-my-ticket-hackathon.onrender.com"
-    : "";
-
-// Set Socket.IO URL
-const SOCKET_URL = API_BASE || undefined;
 // Connect to Socket.IO server
-// const socket = io(SOCKET_URL);
+const socket = io(API_BASE || undefined);
 
 let seatMap = {};
 
 async function run() {
   const tbl = document.getElementById("tbl");
   tbl.innerHTML = "";
-// Connect to Socket.IO server
-const socket = io(SOCKET_URL); // the proxy configuration in vite.config.js will handle directing socket.io to the backend
+  const res = await fetch(`${API_BASE}/seats`);
+  const resarray = await res.json();
   const j = resarray.sort((a, b) => a.id - b.id);
   let tr;
   for (let i = 0; i < j.length; i++) {
@@ -72,7 +68,7 @@ const socket = io(SOCKET_URL); // the proxy configuration in vite.config.js will
 
 run();
 
-// Listen for seat updates from server
+// Listen for real-time seat updates from server
 socket.on("seatUpdated", ({ seatId, name }) => {
   const td = document.getElementById(`seat-${seatId}`);
   if (td) {
@@ -80,31 +76,11 @@ socket.on("seatUpdated", ({ seatId, name }) => {
       "w-32 h-32 rounded-2xl text-center align-middle text-2xl font-bold transition-all duration-300 select-none relative group";
     td.className = `${baseClasses} bg-rose-500/10 text-rose-500/60 border border-rose-500/20 cursor-not-allowed`;
     td.innerHTML = `
-      <span class=\"relative z-10\">${seatId}</span>
-      <div class=\"absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-4 py-2 bg-slate-900 border border-slate-700 text-sm text-slate-300 rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap shadow-2xl z-50 pointer-events-none font-normal shadow-[0_10px_25px_rgba(0,0,0,0.5)]\">
-          Booked by: <span class=\"font-bold text-white ml-1\">${name}</span>
-          <div class=\"absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] border-[6px] border-transparent border-t-slate-700\"></div>
-          <div class=\"absolute top-full left-1/2 -translate-x-1/2 -mt-[2px] border-[5px] border-transparent border-t-slate-900\"></div>
-      </div>
-    `;
-  }
-});
-
-// Socket.IO client setup
-const socket = io(); // the proxy configuration in vite.config.js will handle directing socket.io to the backend
-socket.on("seatUpdated", ({ seatId, name }) => {
-  // Update the seat visually in all tabs
-  const td = document.getElementById(`seat-${seatId}`);
-  if (td) {
-    const baseClasses =
-      "w-32 h-32 rounded-2xl text-center align-middle text-2xl font-bold transition-all duration-300 select-none relative group";
-    td.className = `${baseClasses} bg-rose-500/10 text-rose-500/60 border border-rose-500/20 cursor-not-allowed`;
-    td.innerHTML = `
-      <span class=\"relative z-10\">${seatId}</span>
-      <div class=\"absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-4 py-2 bg-slate-900 border border-slate-700 text-sm text-slate-300 rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap shadow-2xl z-50 pointer-events-none font-normal shadow-[0_10px_25px_rgba(0,0,0,0.5)]\">
-          Booked by: <span class=\"font-bold text-white ml-1\">${name}</span>
-          <div class=\"absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] border-[6px] border-transparent border-t-slate-700\"></div>
-          <div class=\"absolute top-full left-1/2 -translate-x-1/2 -mt-[2px] border-[5px] border-transparent border-t-slate-900\"></div>
+      <span class="relative z-10">${seatId}</span>
+      <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-4 py-2 bg-slate-900 border border-slate-700 text-sm text-slate-300 rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap shadow-2xl z-50 pointer-events-none font-normal shadow-[0_10px_25px_rgba(0,0,0,0.5)]">
+          Booked by: <span class="font-bold text-white ml-1">${name}</span>
+          <div class="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] border-[6px] border-transparent border-t-slate-700"></div>
+          <div class="absolute top-full left-1/2 -translate-x-1/2 -mt-[2px] border-[5px] border-transparent border-t-slate-900"></div>
       </div>
     `;
   }
