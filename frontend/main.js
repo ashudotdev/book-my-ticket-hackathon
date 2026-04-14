@@ -1,10 +1,7 @@
 import { io } from "socket.io-client";
 
-// Backend API base URL
-// In production (Vercel), point to the Render backend. In dev, empty string uses Vite proxy.
-const API_BASE = import.meta.env.PROD
-  ? "https://book-my-ticket-hackathon.onrender.com"
-  : "";
+// Backend API base URL (always points to Render since backend is deployed there)
+const API_BASE = "https://book-my-ticket-hackathon.onrender.com";
 
 // Connect to Socket.IO server
 const socket = io(API_BASE || undefined);

@@ -21,7 +21,9 @@ const port = process.env.PORT || 8080;
 
 const app = express();
 const httpServer = createServer(app);
-const io = new Server(httpServer);
+const io = new Server(httpServer, {
+  cors: { origin: "*" }
+});
 
 app.use(cors());
 app.use(express.json());
