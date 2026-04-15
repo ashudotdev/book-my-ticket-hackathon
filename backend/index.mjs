@@ -7,7 +7,9 @@ import path from "path";
 import cors from "cors";
 import db from "./config/db.mjs";
 import { createServer } from "http";
+import { Server } from "socket.io";
 import { expireHolds } from "./controllers/bookingController.mjs";
+import { getSeatRoom, setRealtimeServer } from "./realtime.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const port = process.env.PORT || 8080;
@@ -15,6 +17,13 @@ const BOOKING_TABLE = "seat_bookings";
 
 const app = express();
 const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+});
+setRealtimeServer(io);
 
 function isMissingRelationError(err) {
   return err && (err.code === "42P01" || /relation .* does not exist/i.test(err.message || ""));
@@ -119,6 +128,18 @@ async function ensureSeatSchema() {
 
 app.use(cors());
 app.use(express.json());
+
+io.on("connection", (socket) => {
+  socket.on("join-seats", ({ movie, time } = {}) => {
+    if (!movie || !time) return;
+    socket.join(getSeatRoom(movie, time));
+  });
+
+  socket.on("leave-seats", ({ movie, time } = {}) => {
+    if (!movie || !time) return;
+    socket.leave(getSeatRoom(movie, time));
+  });
+});
 
 import authRoutes from "./routes/authRoutes.mjs";
 import bookingRoutes from "./routes/bookingRoutes.mjs";

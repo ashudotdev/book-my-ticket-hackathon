@@ -1,4 +1,5 @@
 import pool from "../config/db.mjs";
+import { emitSeatMapUpdate } from "../realtime.mjs";
 
 const VALID_MOVIES = ["dhurandhar", "boothbangla", "dacoit", "hailmary"];
 const VALID_TIMES  = ["9am", "2pm", "7pm"];
@@ -43,7 +44,7 @@ export const holdSeat = async (req, res) => {
     if (parseInt(countRes.rows[0].cnt) >= MAX_SEATS_PER_USER) {
       await conn.query("ROLLBACK");
       conn.release();
-      return res.status(400).json({ success: false, message: `Maximum ${MAX_SEATS_PER_USER} seats allowed per movie per showtime` });
+      return res.status(400).json({ success: false, message: `Maximum ${MAX_SEATS_PER_USER} seats allowed per movie per showtime per booking` });
     }
 
     // Lock the seat row and check availability (0 = available)
@@ -97,6 +98,12 @@ export const holdSeat = async (req, res) => {
 
     await conn.query("COMMIT");
     conn.release();
+    emitSeatMapUpdate(movie, time, {
+      type: "held",
+      seatIds: [seatId],
+      heldUntil: heldUntil.toISOString(),
+      userId,
+    });
 
     res.json({
       success: true,
@@ -146,6 +153,13 @@ export const releaseSeat = async (req, res) => {
 
     await conn.query("COMMIT");
     conn.release();
+    if (delRes.rowCount > 0) {
+      emitSeatMapUpdate(movie, time, {
+        type: "released",
+        seatIds: [seatId],
+        userId,
+      });
+    }
 
     res.json({ success: true, message: "Seat released" });
   } catch (err) {
@@ -201,6 +215,11 @@ export const confirmBooking = async (req, res) => {
 
     await conn.query("COMMIT");
     conn.release();
+    emitSeatMapUpdate(movie, time, {
+      type: "confirmed",
+      seatIds,
+      userId,
+    });
 
     res.json({ success: true, message: "Booking confirmed!", seatIds });
   } catch (err) {
@@ -252,6 +271,11 @@ export const cancelBooking = async (req, res) => {
 
     await conn.query("COMMIT");
     conn.release();
+    emitSeatMapUpdate(booking.movie, booking.show_time, {
+      type: "cancelled",
+      seatIds: [booking.seat_id],
+      userId,
+    });
 
     res.json({
       success: true,
@@ -320,6 +344,16 @@ export const expireHolds = async () => {
     conn.release();
 
     if (expired.rowCount > 0) {
+      const grouped = new Map();
+      for (const row of expired.rows) {
+        const key = `${row.movie}:${row.show_time}`;
+        if (!grouped.has(key)) grouped.set(key, []);
+        grouped.get(key).push(row.seat_id);
+      }
+      for (const [key, seatIds] of grouped.entries()) {
+        const [movie, time] = key.split(":");
+        emitSeatMapUpdate(movie, time, { type: "expired", seatIds });
+      }
       console.log(`🧹 Expired ${expired.rowCount} held seat(s)`);
     }
   } catch (err) {

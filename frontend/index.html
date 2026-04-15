@@ -453,6 +453,18 @@
       font-weight: 800;
       color: rgba(255,70,60,0.35);
     }
+    .st.hd {
+      background: rgba(118, 92, 255, 0.14);
+      border-color: rgba(118, 92, 255, 0.42);
+      color: rgba(198, 189, 255, 0.92);
+      cursor: not-allowed;
+    }
+    .st.hm {
+      background: rgba(0,255,224,0.18);
+      border-color: rgba(0,255,224,0.55);
+      color: #dffffa;
+      box-shadow: 0 0 18px rgba(0,255,224,0.14);
+    }
     .st.sl {
       background: var(--accent);
       border-color: var(--accent);
@@ -606,6 +618,106 @@
     }
     .app-btn.cancel { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.86); }
     .app-btn.ok { background: linear-gradient(135deg, #00ffe0, #00c4a7); color: #0a0a0f; }
+
+    .hold-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1500;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(2,4,10,0.7);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 18px;
+    }
+    .hold-modal.open { display: flex; }
+    .hold-card {
+      width: min(520px, 100%);
+      border-radius: 28px;
+      padding: 28px 26px 24px;
+      background: rgba(8, 10, 18, 0.96);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 24px 70px rgba(0,0,0,0.45);
+      text-align: center;
+    }
+    .hold-seat-badge {
+      width: 82px;
+      height: 82px;
+      margin: 0 auto 18px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at 30% 30%, rgba(124,101,255,0.34), rgba(124,101,255,0.12));
+      border: 1px solid rgba(124,101,255,0.45);
+      color: #8f96ff;
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+    }
+    .hold-title {
+      font-size: 2rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+    .hold-sub {
+      font-size: 1rem;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 10px;
+    }
+    .hold-seats {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #b68cff;
+      margin-bottom: 16px;
+    }
+    .hold-timer {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 24px;
+      font-size: 1rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .hold-ring {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 3px solid rgba(124,101,255,0.9);
+      box-shadow: 0 0 16px rgba(124,101,255,0.28);
+    }
+    .hold-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .hold-btn {
+      border: none;
+      border-radius: 18px;
+      padding: 16px 18px;
+      font-size: 1.08rem;
+      font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .hold-btn.cancel {
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.85);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .hold-btn.confirm {
+      background: linear-gradient(135deg, #6f62ff, #5b4ef6);
+      color: #fff;
+      box-shadow: 0 14px 28px rgba(91,78,246,0.3);
+    }
+    .hold-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
 
     .auth-fab {
       position: fixed;
@@ -918,7 +1030,25 @@
     </div>
   </div>
 
-  <script>
+  <div class="hold-modal" id="hold-modal" aria-hidden="true">
+    <div class="hold-card">
+      <div class="hold-seat-badge" id="hold-seat-badge">2</div>
+      <div class="hold-title">Confirm Booking</div>
+      <div class="hold-sub" id="hold-sub">Your seats are held for you.</div>
+      <div class="hold-seats" id="hold-seats">Seat #18</div>
+      <div class="hold-timer">
+        <span class="hold-ring"></span>
+        <span id="hold-timer-text">1:56</span>
+      </div>
+      <div class="hold-actions">
+        <button id="hold-cancel" class="hold-btn cancel" type="button">Cancel</button>
+        <button id="hold-confirm" class="hold-btn confirm" type="button">Confirm Booking</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { io } from 'socket.io-client';
     // ═══════════════════════════════════════
     // DATA
     // ═══════════════════════════════════════
@@ -970,11 +1100,17 @@
 
     const API_BASE = 'https://book-my-ticket-hackathon.onrender.com';
     const TOKEN_KEY = 'book_my_ticket_token';
+    const MAX_SEATS_PER_USER = 5;
 
     let currentMovie = null;
     let currentTime = null;
     let seatsData = [];
     let selectedSeats = [];
+    let heldSeats = [];
+    let holdDeadline = null;
+    let holdCountdownTimer = null;
+    let socket = null;
+    let activeSocketRoom = null;
     let authMode = 'login';
     let previousViewId = 'view-grid';
     let authToken = localStorage.getItem(TOKEN_KEY) || '';
@@ -1020,6 +1156,144 @@
 
     function authHeaders() {
       return authToken ? { Authorization: `Bearer ${authToken}` } : {};
+    }
+
+    function getSeatRoomKey(movie, time) {
+      return `${String(movie || '').toLowerCase()}:${String(time || '').toLowerCase()}`;
+    }
+
+    function ensureSocket() {
+      if (socket) return socket;
+      socket = io(API_BASE, { transports: ['websocket', 'polling'] });
+      socket.on('seat-map-updated', (payload) => {
+        const isSeatView = document.getElementById('view-seats').classList.contains('active');
+        if (!isSeatView || !currentMovie || !currentTime) return;
+        const sameRoom = payload?.movie === currentMovie.key && payload?.time === currentTime.key;
+        if (!sameRoom) return;
+        fetchSeats({ silent: true });
+      });
+      return socket;
+    }
+
+    function syncSeatRoomSubscription() {
+      const nextRoom = currentMovie && currentTime && document.getElementById('view-seats').classList.contains('active')
+        ? getSeatRoomKey(currentMovie.key, currentTime.key)
+        : null;
+
+      const liveSocket = ensureSocket();
+      if (activeSocketRoom && activeSocketRoom !== nextRoom) {
+        const [movie, time] = activeSocketRoom.split(':');
+        liveSocket.emit('leave-seats', { movie, time });
+        activeSocketRoom = null;
+      }
+
+      if (nextRoom && activeSocketRoom !== nextRoom) {
+        liveSocket.emit('join-seats', { movie: currentMovie.key, time: currentTime.key });
+        activeSocketRoom = nextRoom;
+      }
+    }
+
+    function formatCountdown(ms) {
+      const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${minutes}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    function updateHoldTimerUI() {
+      if (!holdDeadline) return;
+      const remainingMs = holdDeadline - Date.now();
+      document.getElementById('hold-timer-text').textContent = formatCountdown(remainingMs);
+      if (remainingMs <= 0) {
+        closeHoldModal({ clearHeldSeats: true });
+        showToast('Seat hold expired. Please select again.', 'error');
+        fetchSeats({ silent: true });
+      }
+    }
+
+    function openHoldModal(seats, deadlineIso) {
+      heldSeats = seats.slice();
+      holdDeadline = new Date(deadlineIso).getTime();
+      const seatNumbers = heldSeats.map(seat => `#${seat.seat_number || seat.seatId || seat.id}`);
+      document.getElementById('hold-seat-badge').textContent = String(heldSeats.length).padStart(2, '0');
+      document.getElementById('hold-sub').textContent = heldSeats.length === 1
+        ? 'Your seat is held for you.'
+        : 'Your seats are held for you.';
+      document.getElementById('hold-seats').textContent = seatNumbers.join(', ');
+      const modal = document.getElementById('hold-modal');
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden', 'false');
+      updateHoldTimerUI();
+      clearInterval(holdCountdownTimer);
+      holdCountdownTimer = setInterval(updateHoldTimerUI, 1000);
+    }
+
+    function closeHoldModal({ clearHeldSeats = false } = {}) {
+      const modal = document.getElementById('hold-modal');
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden', 'true');
+      clearInterval(holdCountdownTimer);
+      holdCountdownTimer = null;
+      holdDeadline = null;
+      if (clearHeldSeats) {
+        heldSeats = [];
+      }
+    }
+
+    async function releaseHeldSeats() {
+      if (!heldSeats.length || !currentMovie || !currentTime) {
+        closeHoldModal({ clearHeldSeats: true });
+        return;
+      }
+
+      const seatsToRelease = heldSeats.slice();
+      document.getElementById('hold-cancel').disabled = true;
+      document.getElementById('hold-confirm').disabled = true;
+      try {
+        await Promise.all(seatsToRelease.map((seat) =>
+          fetch(`${API_BASE}/book/release/${seat.id}?movie=${currentMovie.key}&time=${currentTime.key}`, {
+            method: 'POST',
+            headers: { ...authHeaders() },
+          }).catch(() => null)
+        ));
+      } finally {
+        closeHoldModal({ clearHeldSeats: true });
+        document.getElementById('hold-cancel').disabled = false;
+        document.getElementById('hold-confirm').disabled = false;
+        fetchSeats({ silent: true });
+      }
+    }
+
+    async function confirmHeldSeats() {
+      if (!heldSeats.length || !currentMovie || !currentTime) return;
+      const confirmBtn = document.getElementById('hold-confirm');
+      const cancelBtn = document.getElementById('hold-cancel');
+      confirmBtn.disabled = true;
+      cancelBtn.disabled = true;
+      confirmBtn.textContent = 'Confirming…';
+      try {
+        const confirmRes = await fetch(`${API_BASE}/book/confirm?movie=${currentMovie.key}&time=${currentTime.key}`, {
+          method: 'POST',
+          headers: { ...authHeaders() },
+        });
+        const confirmData = await confirmRes.json();
+
+        if (!confirmRes.ok || !confirmData.success) {
+          showToast(confirmData.message || 'Could not confirm booking.', 'error');
+          return;
+        }
+
+        closeHoldModal({ clearHeldSeats: true });
+        selectedSeats = [];
+        showToast('Booking successful! 🎬', 'success');
+        fetchSeats({ silent: true });
+      } catch (err) {
+        showToast('Confirm error: ' + err.message, 'error');
+      } finally {
+        confirmBtn.disabled = false;
+        cancelBtn.disabled = false;
+        confirmBtn.textContent = 'Confirm Booking';
+      }
     }
 
     function updateAuthUI() {
@@ -1212,6 +1486,7 @@
     });
     document.getElementById('my-bookings-btn').addEventListener('click', openMyBookings);
     document.getElementById('logout-btn').addEventListener('click', () => {
+      closeHoldModal({ clearHeldSeats: true });
       setAuthToken('');
       showToast('Logged out.', 'info');
       showView('view-grid');
@@ -1223,6 +1498,11 @@
     document.getElementById('auth-submit').addEventListener('click', submitAuth);
     document.getElementById('auth-modal').addEventListener('click', (e) => {
       if (e.target.id === 'auth-modal') closeAuthModal();
+    });
+    document.getElementById('hold-cancel').addEventListener('click', releaseHeldSeats);
+    document.getElementById('hold-confirm').addEventListener('click', confirmHeldSeats);
+    document.getElementById('hold-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'hold-modal') releaseHeldSeats();
     });
     document.getElementById('bookings-back').addEventListener('click', () => {
       if (previousViewId === 'view-seats' && currentMovie && currentTime) {
@@ -1237,9 +1517,15 @@
 
     document.addEventListener('keydown', (e) => {
       const modal = document.getElementById('auth-modal');
-      if (!modal.classList.contains('open')) return;
-      if (e.key === 'Escape') closeAuthModal();
-      if (e.key === 'Enter') submitAuth();
+      if (modal.classList.contains('open')) {
+        if (e.key === 'Escape') closeAuthModal();
+        if (e.key === 'Enter') submitAuth();
+      }
+
+      const holdModal = document.getElementById('hold-modal');
+      if (holdModal.classList.contains('open') && e.key === 'Escape') {
+        releaseHeldSeats();
+      }
     });
 
     updateAuthUI();
@@ -1249,10 +1535,16 @@
     // ═══════════════════════════════════════
 
     function showView(id) {
+      const wasSeatView = document.getElementById('view-seats').classList.contains('active');
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
       document.getElementById(id).classList.add('active');
       document.body.classList.remove('view-grid-active', 'view-detail-active', 'view-seats-active', 'view-bookings-active');
       document.body.classList.add(`${id}-active`);
+      if (wasSeatView && id !== 'view-seats' && activeSocketRoom) {
+        syncSeatRoomSubscription();
+      } else if (id === 'view-seats') {
+        syncSeatRoomSubscription();
+      }
       window.scrollTo(0, 0);
     }
 
@@ -1349,16 +1641,19 @@
       document.body.style.background = currentMovie.bg;
 
       showView('view-seats');
-      fetchSeats();
+      fetchSeats({ silent: true });
     }
 
     document.getElementById('v3-back').addEventListener('click', () => {
       openDetail(currentMovie.key);
     });
 
-    function fetchSeats() {
+    function fetchSeats({ silent = false } = {}) {
       const container = document.getElementById('v3-seats-container');
-      container.innerHTML = '<div class="v3-loading"><div class="v3-spinner"></div><div style="font-size:0.85rem;color:rgba(255,255,255,0.3);">Loading seats…</div></div>';
+      if (!silent) {
+        container.innerHTML = '<div class="v3-loading"><div class="v3-spinner"></div><div style="font-size:0.85rem;color:rgba(255,255,255,0.3);">Loading seats…</div></div>';
+      }
+      syncSeatRoomSubscription();
 
       fetch(`${API_BASE}/seats?movie=${currentMovie.key}&time=${currentTime.key}`)
         .then(r => r.json())
@@ -1447,10 +1742,20 @@
       const el = document.createElement('div');
       el.className = 'st';
       const n = String(col).padStart(2, '0');
+      const isHeldByCurrentUser = seat.isbooked === 2 && currentUser && seat.held_by_user === currentUser.id;
+      const isHeldByOtherUser = seat.isbooked === 2 && !isHeldByCurrentUser;
 
-      if (seat.isbooked) {
+      if (seat.isbooked === 1) {
         el.classList.add('bk');
         el.title = seat.name ? `Booked by ${seat.name}` : 'Booked';
+      } else if (isHeldByCurrentUser) {
+        el.classList.add('hm');
+        el.textContent = n;
+        el.title = `Seat ${seat.seat_number} — Held by you`;
+      } else if (isHeldByOtherUser) {
+        el.classList.add('hd');
+        el.textContent = n;
+        el.title = `Seat ${seat.seat_number} — Temporarily held`;
       } else if (selectedSeats.includes(seat.id)) {
         el.classList.add('sl');
         el.textContent = n;
@@ -1462,10 +1767,14 @@
       }
 
       el.addEventListener('click', () => {
-        if (seat.isbooked) return;
+        if (seat.isbooked || isHeldByOtherUser || isHeldByCurrentUser) return;
         if (selectedSeats.includes(seat.id)) {
           selectedSeats = selectedSeats.filter(s => s !== seat.id);
         } else {
+          if (selectedSeats.length >= MAX_SEATS_PER_USER) {
+            showToast(`Maximum ${MAX_SEATS_PER_USER} seats allowed per movie per showtime per booking.`, 'error');
+            return;
+          }
           selectedSeats.push(seat.id);
         }
         renderTheater();
@@ -1495,6 +1804,12 @@
 
     document.getElementById('v3-buy-btn').addEventListener('click', async () => {
       if (selectedSeats.length === 0) return;
+      if (selectedSeats.length > MAX_SEATS_PER_USER) {
+        showToast(`Maximum ${MAX_SEATS_PER_USER} seats allowed per movie per showtime per booking.`, 'error');
+        selectedSeats = selectedSeats.slice(0, MAX_SEATS_PER_USER);
+        renderTheater();
+        return;
+      }
       if (!currentUser) {
         showToast('Please login before booking.', 'info');
         openAuthModal('login');
@@ -1506,7 +1821,8 @@
       btn.textContent = 'Booking…';
 
       try {
-        let heldCount = 0;
+        const heldNow = [];
+        let latestHeldUntil = null;
         for (const seatId of selectedSeats) {
           const res = await fetch(`${API_BASE}/book/hold/${seatId}?movie=${currentMovie.key}&time=${currentTime.key}`, {
             method: 'POST',
@@ -1516,29 +1832,23 @@
           if (!res.ok || !data.success) {
             showToast(`Seat ${seatId}: ${data.message || 'Could not hold seat.'}`, 'error');
           } else {
-            heldCount += 1;
+            heldNow.push({ id: data.seatId, seat_number: data.seatNumber });
+            if (!latestHeldUntil || new Date(data.heldUntil) < new Date(latestHeldUntil)) {
+              latestHeldUntil = data.heldUntil;
+            }
           }
         }
 
-        if (heldCount === 0) {
+        if (heldNow.length === 0) {
           showToast('No seats could be held for booking.', 'error');
           return;
         }
-
-        const confirmRes = await fetch(`${API_BASE}/book/confirm?movie=${currentMovie.key}&time=${currentTime.key}`, {
-          method: 'POST',
-          headers: { ...authHeaders() },
-        });
-        const confirmData = await confirmRes.json();
-
-        if (!confirmRes.ok || !confirmData.success) {
-          showToast(confirmData.message || 'Could not confirm booking.', 'error');
-        } else {
-          showToast('Booking successful! 🎬', 'success');
+        if (heldNow.length !== selectedSeats.length) {
+          showToast('Some seats could not be held. Review the hold modal.', 'info');
         }
-
         selectedSeats = [];
-        fetchSeats();
+        fetchSeats({ silent: true });
+        openHoldModal(heldNow, latestHeldUntil || new Date(Date.now() + 2 * 60 * 1000).toISOString());
       } catch (e) {
         showToast('Error: ' + e.message, 'error');
       } finally {
