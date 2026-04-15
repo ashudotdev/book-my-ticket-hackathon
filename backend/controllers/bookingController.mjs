@@ -36,10 +36,10 @@ export const holdSeat = async (req, res) => {
   try {
     await conn.query("BEGIN");
 
-    // Count user's active bookings (held + confirmed) for this movie+time
+    // Limit only the current in-progress booking, not previously confirmed tickets.
     const countSql = `SELECT COUNT(*) as cnt FROM ${BOOKING_TABLE}
                       WHERE user_id = $1 AND movie = $2 AND show_time = $3
-                      AND status IN ('held', 'confirmed')`;
+                      AND status = 'held'`;
     const countRes = await conn.query(countSql, [userId, movie, time]);
     if (parseInt(countRes.rows[0].cnt) >= MAX_SEATS_PER_USER) {
       await conn.query("ROLLBACK");

@@ -1101,6 +1101,7 @@
     const API_BASE = 'https://book-my-ticket-hackathon.onrender.com';
     const TOKEN_KEY = 'book_my_ticket_token';
     const MAX_SEATS_PER_USER = 5;
+    const NAV_STATE_KEY = 'book_my_ticket_nav_state';
 
     let currentMovie = null;
     let currentTime = null;
@@ -1138,6 +1139,25 @@
         const payload = token.split('.')[1];
         const base = payload.replace(/-/g, '+').replace(/_/g, '/');
         return JSON.parse(atob(base));
+      } catch {
+        return null;
+      }
+    }
+
+    function saveNavState() {
+      const activeViewId = document.querySelector('.view.active')?.id || 'view-grid';
+      const payload = {
+        viewId: activeViewId,
+        previousViewId,
+        movieKey: currentMovie?.key || null,
+        timeKey: currentTime?.key || null,
+      };
+      localStorage.setItem(NAV_STATE_KEY, JSON.stringify(payload));
+    }
+
+    function loadNavState() {
+      try {
+        return JSON.parse(localStorage.getItem(NAV_STATE_KEY) || 'null');
       } catch {
         return null;
       }
@@ -1394,7 +1414,10 @@
         openAuthModal('login');
         return;
       }
-      previousViewId = document.querySelector('.view.active')?.id || 'view-grid';
+      const activeViewId = document.querySelector('.view.active')?.id || 'view-grid';
+      if (activeViewId !== 'view-bookings') {
+        previousViewId = activeViewId;
+      }
       document.body.style.background = 'var(--bg)';
       showView('view-bookings');
       await fetchMyBookings();
@@ -1488,6 +1511,7 @@
     document.getElementById('logout-btn').addEventListener('click', () => {
       closeHoldModal({ clearHeldSeats: true });
       setAuthToken('');
+      previousViewId = 'view-grid';
       showToast('Logged out.', 'info');
       showView('view-grid');
     });
@@ -1505,14 +1529,17 @@
       if (e.target.id === 'hold-modal') releaseHeldSeats();
     });
     document.getElementById('bookings-back').addEventListener('click', () => {
-      if (previousViewId === 'view-seats' && currentMovie && currentTime) {
-        document.body.style.background = currentMovie.bg;
-      } else if (previousViewId === 'view-detail' && currentMovie) {
-        document.body.style.background = currentMovie.bg;
-      } else {
-        document.body.style.background = 'var(--bg)';
+      const targetView = previousViewId || 'view-grid';
+      if (targetView === 'view-seats' && currentMovie && currentTime) {
+        openSeats();
+        return;
       }
-      showView(previousViewId || 'view-grid');
+      if (targetView === 'view-detail' && currentMovie) {
+        openDetail(currentMovie.key, { preserveTime: true });
+        return;
+      }
+      document.body.style.background = 'var(--bg)';
+      showView('view-grid');
     });
 
     document.addEventListener('keydown', (e) => {
@@ -1545,6 +1572,7 @@
       } else if (id === 'view-seats') {
         syncSeatRoomSubscription();
       }
+      saveNavState();
       window.scrollTo(0, 0);
     }
 
@@ -1578,9 +1606,9 @@
     // VIEW 2: Movie Detail
     // ═══════════════════════════════════════
 
-    function openDetail(movieKey) {
+    function openDetail(movieKey, { preserveTime = false } = {}) {
       currentMovie = MOVIES[movieKey];
-      currentTime = null;
+      currentTime = preserveTime && currentTime ? currentTime : null;
       selectedSeats = [];
 
       // Apply movie bg
@@ -1599,6 +1627,9 @@
       TIME_SLOTS.forEach(ts => {
         const btn = document.createElement('button');
         btn.className = 'v2-time-btn';
+        if (currentTime?.key === ts.key) {
+          btn.classList.add('selected');
+        }
         btn.innerHTML = `${ts.label}<span class="time-seats">${ts.seats} seats</span>`;
         btn.addEventListener('click', () => {
           currentTime = ts;
@@ -1609,7 +1640,7 @@
         timingsDiv.appendChild(btn);
       });
 
-      document.getElementById('v2-reserve').disabled = true;
+      document.getElementById('v2-reserve').disabled = !currentTime;
       showView('view-detail');
     }
 
@@ -1645,7 +1676,7 @@
     }
 
     document.getElementById('v3-back').addEventListener('click', () => {
-      openDetail(currentMovie.key);
+      openDetail(currentMovie.key, { preserveTime: true });
     });
 
     function fetchSeats({ silent = false } = {}) {
@@ -1856,6 +1887,38 @@
         updateBuyBar();
       }
     });
+
+    (function restoreNavigation() {
+      const navState = loadNavState();
+      if (!navState) {
+        showView('view-grid');
+        return;
+      }
+
+      previousViewId = navState.previousViewId || 'view-grid';
+      currentMovie = navState.movieKey ? MOVIES[navState.movieKey] || null : null;
+      currentTime = navState.timeKey ? TIME_SLOTS.find((slot) => slot.key === navState.timeKey) || null : null;
+
+      if (navState.viewId === 'view-bookings' && currentUser) {
+        document.body.style.background = 'var(--bg)';
+        showView('view-bookings');
+        fetchMyBookings();
+        return;
+      }
+
+      if (navState.viewId === 'view-seats' && currentMovie && currentTime) {
+        openSeats();
+        return;
+      }
+
+      if (navState.viewId === 'view-detail' && currentMovie) {
+        openDetail(currentMovie.key, { preserveTime: true });
+        return;
+      }
+
+      document.body.style.background = 'var(--bg)';
+      showView('view-grid');
+    })();
 
   </script>
 </body>
