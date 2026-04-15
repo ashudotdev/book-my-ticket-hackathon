@@ -4,6 +4,7 @@ const VALID_MOVIES = ["dhurandhar", "boothbangla", "dacoit", "hailmary"];
 const VALID_TIMES  = ["9am", "2pm", "7pm"];
 const MAX_SEATS_PER_USER = 5;
 const HOLD_DURATION_MS = 2 * 60 * 1000; // 2 minutes
+const BOOKING_TABLE = "seat_bookings";
 
 function getSchemaErrorMessage(err) {
   const code = err?.code;
@@ -35,7 +36,7 @@ export const holdSeat = async (req, res) => {
     await conn.query("BEGIN");
 
     // Count user's active bookings (held + confirmed) for this movie+time
-    const countSql = `SELECT COUNT(*) as cnt FROM bookings
+    const countSql = `SELECT COUNT(*) as cnt FROM ${BOOKING_TABLE}
                       WHERE user_id = $1 AND movie = $2 AND show_time = $3
                       AND status IN ('held', 'confirmed')`;
     const countRes = await conn.query(countSql, [userId, movie, time]);
@@ -63,7 +64,7 @@ export const holdSeat = async (req, res) => {
     // Legacy deployments may not have the newer UNIQUE constraint needed for
     // ON CONFLICT (movie, show_time, seat_id), so perform a manual upsert.
     const existingBookingRes = await conn.query(
-      `SELECT id, status FROM bookings
+      `SELECT id, status FROM ${BOOKING_TABLE}
        WHERE movie = $1 AND show_time = $2 AND seat_id = $3
        LIMIT 1
        FOR UPDATE`,
@@ -80,7 +81,7 @@ export const holdSeat = async (req, res) => {
       }
 
       await conn.query(
-        `UPDATE bookings
+        `UPDATE ${BOOKING_TABLE}
          SET user_id = $1, movie = $2, show_time = $3, seat_id = $4, seat_number = $5,
              status = 'held', held_until = $6
          WHERE id = $7`,
@@ -88,7 +89,7 @@ export const holdSeat = async (req, res) => {
       );
     } else {
       await conn.query(
-        `INSERT INTO bookings (user_id, movie, show_time, seat_id, seat_number, status, held_until)
+        `INSERT INTO ${BOOKING_TABLE} (user_id, movie, show_time, seat_id, seat_number, status, held_until)
          VALUES ($1, $2, $3, $4, $5, 'held', $6)`,
         [userId, movie, time, seatId, seatNumber, heldUntil]
       );
@@ -135,7 +136,7 @@ export const releaseSeat = async (req, res) => {
 
     // Only delete if this user holds it
     const delRes = await conn.query(
-      `DELETE FROM bookings WHERE user_id = $1 AND movie = $2 AND show_time = $3 AND seat_id = $4 AND status = 'held'`,
+      `DELETE FROM ${BOOKING_TABLE} WHERE user_id = $1 AND movie = $2 AND show_time = $3 AND seat_id = $4 AND status = 'held'`,
       [userId, movie, time, seatId]
     );
 
@@ -174,7 +175,7 @@ export const confirmBooking = async (req, res) => {
     await conn.query("BEGIN");
 
     // Get all held seats for this user+movie+time
-    const heldSql = `SELECT seat_id FROM bookings
+    const heldSql = `SELECT seat_id FROM ${BOOKING_TABLE}
                      WHERE user_id = $1 AND movie = $2 AND show_time = $3 AND status = 'held'`;
     const heldRes = await conn.query(heldSql, [userId, movie, time]);
 
@@ -188,7 +189,7 @@ export const confirmBooking = async (req, res) => {
 
     // Confirm in bookings table
     await conn.query(
-      `UPDATE bookings SET status = 'confirmed', held_until = NULL, booked_at = NOW()
+      `UPDATE ${BOOKING_TABLE} SET status = 'confirmed', held_until = NULL, booked_at = NOW()
        WHERE user_id = $1 AND movie = $2 AND show_time = $3 AND status = 'held'`,
       [userId, movie, time]
     );
@@ -225,7 +226,7 @@ export const cancelBooking = async (req, res) => {
 
     // Find the booking
     const bkRes = await conn.query(
-      `SELECT * FROM bookings WHERE id = $1 AND user_id = $2 AND status = 'confirmed'`,
+      `SELECT * FROM ${BOOKING_TABLE} WHERE id = $1 AND user_id = $2 AND status = 'confirmed'`,
       [bookingId, userId]
     );
 
@@ -247,7 +248,7 @@ export const cancelBooking = async (req, res) => {
     await conn.query(`UPDATE ${table} SET isbooked = 0, name = NULL WHERE id = $1`, [booking.seat_id]);
 
     // Delete the booking record
-    await conn.query(`DELETE FROM bookings WHERE id = $1`, [bookingId]);
+    await conn.query(`DELETE FROM ${BOOKING_TABLE} WHERE id = $1`, [bookingId]);
 
     await conn.query("COMMIT");
     conn.release();
@@ -277,7 +278,7 @@ export const getMyBookings = async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT id, movie, show_time, seat_id, seat_number, status, booked_at
-       FROM bookings
+       FROM ${BOOKING_TABLE}
        WHERE user_id = $1 AND status = 'confirmed'
        ORDER BY booked_at DESC`,
       [userId]
@@ -301,7 +302,7 @@ export const expireHolds = async () => {
 
     // Find all expired holds
     const expired = await conn.query(
-      `SELECT id, movie, show_time, seat_id FROM bookings
+      `SELECT id, movie, show_time, seat_id FROM ${BOOKING_TABLE}
        WHERE status = 'held' AND held_until < NOW()`
     );
 
@@ -313,7 +314,7 @@ export const expireHolds = async () => {
     }
 
     // Delete expired holds
-    await conn.query(`DELETE FROM bookings WHERE status = 'held' AND held_until < NOW()`);
+    await conn.query(`DELETE FROM ${BOOKING_TABLE} WHERE status = 'held' AND held_until < NOW()`);
 
     await conn.query("COMMIT");
     conn.release();

@@ -151,6 +151,21 @@ CREATE TABLE IF NOT EXISTS bookings (
     UNIQUE(movie, show_time, seat_id)
 );
 
+-- Fresh booking table used by the live app so legacy `bookings` schema quirks
+-- do not break hold/confirm flows on older deployments.
+CREATE TABLE IF NOT EXISTS seat_bookings (
+    id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(id) ON DELETE CASCADE,
+    movie VARCHAR(50) NOT NULL,
+    show_time VARCHAR(10) NOT NULL,
+    seat_id INT NOT NULL,
+    seat_number INT,
+    status VARCHAR(20) DEFAULT 'confirmed',
+    held_until TIMESTAMPTZ,
+    booked_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(movie, show_time, seat_id)
+);
+
 -- Migration-safe: add columns if they don't exist (for existing DBs)
 DO $$
 BEGIN
@@ -202,4 +217,23 @@ BEGIN
     UPDATE bookings SET status = 'confirmed' WHERE status IS NULL;
     UPDATE bookings SET booked_at = NOW() WHERE booked_at IS NULL;
     UPDATE bookings SET seat_number = seat_id WHERE seat_number IS NULL AND seat_id IS NOT NULL;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='seat_bookings' AND column_name='seat_number') THEN
+        ALTER TABLE seat_bookings ADD COLUMN seat_number INT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='seat_bookings' AND column_name='status') THEN
+        ALTER TABLE seat_bookings ADD COLUMN status VARCHAR(20) DEFAULT 'confirmed';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='seat_bookings' AND column_name='held_until') THEN
+        ALTER TABLE seat_bookings ADD COLUMN held_until TIMESTAMPTZ;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='seat_bookings' AND column_name='booked_at') THEN
+        ALTER TABLE seat_bookings ADD COLUMN booked_at TIMESTAMPTZ DEFAULT NOW();
+    END IF;
+    UPDATE seat_bookings SET status = 'confirmed' WHERE status IS NULL;
+    UPDATE seat_bookings SET booked_at = NOW() WHERE booked_at IS NULL;
+    UPDATE seat_bookings SET seat_number = seat_id WHERE seat_number IS NULL AND seat_id IS NOT NULL;
 END $$;

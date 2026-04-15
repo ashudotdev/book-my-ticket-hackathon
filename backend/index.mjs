@@ -11,6 +11,7 @@ import { expireHolds } from "./controllers/bookingController.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const port = process.env.PORT || 8080;
+const BOOKING_TABLE = "seat_bookings";
 
 const app = express();
 const httpServer = createServer(app);
@@ -30,7 +31,7 @@ async function ensureCoreSchema() {
   `);
 
   await db.query(`
-    CREATE TABLE IF NOT EXISTS bookings (
+    CREATE TABLE IF NOT EXISTS ${BOOKING_TABLE} (
       id SERIAL PRIMARY KEY,
       user_id INT REFERENCES users(id) ON DELETE CASCADE,
       movie VARCHAR(50) NOT NULL,
@@ -48,10 +49,10 @@ async function ensureCoreSchema() {
     BEGIN
       IF NOT EXISTS (
         SELECT 1 FROM pg_constraint
-        WHERE conname = 'bookings_movie_show_time_seat_id_key'
+        WHERE conname = '${BOOKING_TABLE}_movie_show_time_seat_id_key'
       ) THEN
-        ALTER TABLE bookings
-        ADD CONSTRAINT bookings_movie_show_time_seat_id_key UNIQUE (movie, show_time, seat_id);
+        ALTER TABLE ${BOOKING_TABLE}
+        ADD CONSTRAINT ${BOOKING_TABLE}_movie_show_time_seat_id_key UNIQUE (movie, show_time, seat_id);
       END IF;
     END $$;
   `);
@@ -59,53 +60,53 @@ async function ensureCoreSchema() {
   await db.query(`
     DO $$
     BEGIN
-      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='moviename')
-         AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='movie') THEN
-        ALTER TABLE bookings RENAME COLUMN moviename TO movie;
+      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='${BOOKING_TABLE}' AND column_name='moviename')
+         AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='${BOOKING_TABLE}' AND column_name='movie') THEN
+        ALTER TABLE ${BOOKING_TABLE} RENAME COLUMN moviename TO movie;
       END IF;
-      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='movie_name')
-         AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='movie') THEN
-        ALTER TABLE bookings RENAME COLUMN movie_name TO movie;
+      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='${BOOKING_TABLE}' AND column_name='movie_name')
+         AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='${BOOKING_TABLE}' AND column_name='movie') THEN
+        ALTER TABLE ${BOOKING_TABLE} RENAME COLUMN movie_name TO movie;
       END IF;
-      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='time')
-         AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='show_time') THEN
-        ALTER TABLE bookings RENAME COLUMN time TO show_time;
+      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='${BOOKING_TABLE}' AND column_name='time')
+         AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='${BOOKING_TABLE}' AND column_name='show_time') THEN
+        ALTER TABLE ${BOOKING_TABLE} RENAME COLUMN time TO show_time;
       END IF;
-      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='seatno')
-         AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='seat_id') THEN
-        ALTER TABLE bookings RENAME COLUMN seatno TO seat_id;
+      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='${BOOKING_TABLE}' AND column_name='seatno')
+         AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='${BOOKING_TABLE}' AND column_name='seat_id') THEN
+        ALTER TABLE ${BOOKING_TABLE} RENAME COLUMN seatno TO seat_id;
       END IF;
-      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='seat_no')
-         AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='seat_id') THEN
-        ALTER TABLE bookings RENAME COLUMN seat_no TO seat_id;
+      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='${BOOKING_TABLE}' AND column_name='seat_no')
+         AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='${BOOKING_TABLE}' AND column_name='seat_id') THEN
+        ALTER TABLE ${BOOKING_TABLE} RENAME COLUMN seat_no TO seat_id;
       END IF;
-      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='user_id') THEN
-        ALTER TABLE bookings ADD COLUMN user_id INT REFERENCES users(id) ON DELETE CASCADE;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='${BOOKING_TABLE}' AND column_name='user_id') THEN
+        ALTER TABLE ${BOOKING_TABLE} ADD COLUMN user_id INT REFERENCES users(id) ON DELETE CASCADE;
       END IF;
-      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='movie') THEN
-        ALTER TABLE bookings ADD COLUMN movie VARCHAR(50);
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='${BOOKING_TABLE}' AND column_name='movie') THEN
+        ALTER TABLE ${BOOKING_TABLE} ADD COLUMN movie VARCHAR(50);
       END IF;
-      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='show_time') THEN
-        ALTER TABLE bookings ADD COLUMN show_time VARCHAR(10);
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='${BOOKING_TABLE}' AND column_name='show_time') THEN
+        ALTER TABLE ${BOOKING_TABLE} ADD COLUMN show_time VARCHAR(10);
       END IF;
-      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='seat_id') THEN
-        ALTER TABLE bookings ADD COLUMN seat_id INT;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='${BOOKING_TABLE}' AND column_name='seat_id') THEN
+        ALTER TABLE ${BOOKING_TABLE} ADD COLUMN seat_id INT;
       END IF;
-      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='status') THEN
-        ALTER TABLE bookings ADD COLUMN status VARCHAR(20) DEFAULT 'confirmed';
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='${BOOKING_TABLE}' AND column_name='status') THEN
+        ALTER TABLE ${BOOKING_TABLE} ADD COLUMN status VARCHAR(20) DEFAULT 'confirmed';
       END IF;
-      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='held_until') THEN
-        ALTER TABLE bookings ADD COLUMN held_until TIMESTAMPTZ;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='${BOOKING_TABLE}' AND column_name='held_until') THEN
+        ALTER TABLE ${BOOKING_TABLE} ADD COLUMN held_until TIMESTAMPTZ;
       END IF;
-      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='booked_at') THEN
-        ALTER TABLE bookings ADD COLUMN booked_at TIMESTAMPTZ DEFAULT NOW();
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='${BOOKING_TABLE}' AND column_name='booked_at') THEN
+        ALTER TABLE ${BOOKING_TABLE} ADD COLUMN booked_at TIMESTAMPTZ DEFAULT NOW();
       END IF;
-      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='seat_number') THEN
-        ALTER TABLE bookings ADD COLUMN seat_number INT;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='${BOOKING_TABLE}' AND column_name='seat_number') THEN
+        ALTER TABLE ${BOOKING_TABLE} ADD COLUMN seat_number INT;
       END IF;
-      UPDATE bookings SET status = 'confirmed' WHERE status IS NULL;
-      UPDATE bookings SET booked_at = NOW() WHERE booked_at IS NULL;
-      UPDATE bookings SET seat_number = seat_id WHERE seat_number IS NULL AND seat_id IS NOT NULL;
+      UPDATE ${BOOKING_TABLE} SET status = 'confirmed' WHERE status IS NULL;
+      UPDATE ${BOOKING_TABLE} SET booked_at = NOW() WHERE booked_at IS NULL;
+      UPDATE ${BOOKING_TABLE} SET seat_number = seat_id WHERE seat_number IS NULL AND seat_id IS NOT NULL;
     END $$;
   `);
 }
@@ -161,7 +162,7 @@ app.get("/seats", async (req, res) => {
 
     try {
       const holdsRes = await db.query(
-        `SELECT seat_id, held_until, user_id FROM bookings
+        `SELECT seat_id, held_until, user_id FROM ${BOOKING_TABLE}
          WHERE movie = $1 AND show_time = $2 AND status = 'held'`,
         [movie, time]
       );
