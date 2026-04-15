@@ -5,6 +5,13 @@ const VALID_TIMES  = ["9am", "2pm", "7pm"];
 const MAX_SEATS_PER_USER = 5;
 const HOLD_DURATION_MS = 2 * 60 * 1000; // 2 minutes
 
+function getSchemaErrorMessage(err) {
+  const code = err?.code;
+  if (code === "42P01") return "Database table missing. Please run migration and restart server.";
+  if (code === "42703") return "Database column missing. Please run migration and restart server.";
+  return null;
+}
+
 function getTableName(movie, time) {
   const m = (movie || "").toLowerCase();
   const t = (time || "").toLowerCase();
@@ -76,6 +83,10 @@ export const holdSeat = async (req, res) => {
     await conn.query("ROLLBACK");
     conn.release();
     console.error("Hold Error:", err);
+    const schemaMessage = getSchemaErrorMessage(err);
+    if (schemaMessage) {
+      return res.status(503).json({ success: false, message: schemaMessage });
+    }
     if (err.code === "23505") {
       return res.status(400).json({ success: false, message: "Seat already held/booked" });
     }
@@ -115,6 +126,10 @@ export const releaseSeat = async (req, res) => {
     await conn.query("ROLLBACK");
     conn.release();
     console.error("Release Error:", err);
+    const schemaMessage = getSchemaErrorMessage(err);
+    if (schemaMessage) {
+      return res.status(503).json({ success: false, message: schemaMessage });
+    }
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -166,6 +181,10 @@ export const confirmBooking = async (req, res) => {
     await conn.query("ROLLBACK");
     conn.release();
     console.error("Confirm Error:", err);
+    const schemaMessage = getSchemaErrorMessage(err);
+    if (schemaMessage) {
+      return res.status(503).json({ success: false, message: schemaMessage });
+    }
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -219,6 +238,10 @@ export const cancelBooking = async (req, res) => {
     await conn.query("ROLLBACK");
     conn.release();
     console.error("Cancel Error:", err);
+    const schemaMessage = getSchemaErrorMessage(err);
+    if (schemaMessage) {
+      return res.status(503).json({ success: false, message: schemaMessage });
+    }
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -237,6 +260,10 @@ export const getMyBookings = async (req, res) => {
     res.json({ success: true, bookings: result.rows });
   } catch (err) {
     console.error("MyBookings Error:", err);
+    const schemaMessage = getSchemaErrorMessage(err);
+    if (schemaMessage) {
+      return res.status(503).json({ success: false, message: schemaMessage });
+    }
     res.status(500).json({ success: false, message: "Server error" });
   }
 };

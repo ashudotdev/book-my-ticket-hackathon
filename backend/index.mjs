@@ -13,6 +13,66 @@ const port = process.env.PORT || 8080;
 const app = express();
 const httpServer = createServer(app);
 
+function isMissingRelationError(err) {
+  return err && (err.code === "42P01" || /relation .* does not exist/i.test(err.message || ""));
+}
+
+async function ensureCoreSchema() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      password VARCHAR(255) NOT NULL
+    );
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS bookings (
+      id SERIAL PRIMARY KEY,
+      user_id INT REFERENCES users(id) ON DELETE CASCADE,
+      movie VARCHAR(50) NOT NULL,
+      show_time VARCHAR(10) NOT NULL,
+      seat_id INT NOT NULL,
+      status VARCHAR(20) DEFAULT 'confirmed',
+      held_until TIMESTAMPTZ,
+      booked_at TIMESTAMPTZ DEFAULT NOW(),
+      seat_number INT
+    );
+  `);
+
+  await db.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'bookings_movie_show_time_seat_id_key'
+      ) THEN
+        ALTER TABLE bookings
+        ADD CONSTRAINT bookings_movie_show_time_seat_id_key UNIQUE (movie, show_time, seat_id);
+      END IF;
+    END $$;
+  `);
+
+  await db.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='status') THEN
+        ALTER TABLE bookings ADD COLUMN status VARCHAR(20) DEFAULT 'confirmed';
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='held_until') THEN
+        ALTER TABLE bookings ADD COLUMN held_until TIMESTAMPTZ;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='booked_at') THEN
+        ALTER TABLE bookings ADD COLUMN booked_at TIMESTAMPTZ DEFAULT NOW();
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='seat_number') THEN
+        ALTER TABLE bookings ADD COLUMN seat_number INT;
+      END IF;
+    END $$;
+  `);
+}
+
 app.use(cors());
 app.use(express.json());
 
@@ -53,15 +113,23 @@ app.get("/seats", async (req, res) => {
     // Also fetch hold info for held seats so frontend can show countdown
     const movie = req.query.movie.toLowerCase();
     const time = req.query.time.toLowerCase();
-    const holdsRes = await db.query(
-      `SELECT seat_id, held_until, user_id FROM bookings
-       WHERE movie = $1 AND show_time = $2 AND status = 'held'`,
-      [movie, time]
-    );
+
     const holdMap = {};
-    holdsRes.rows.forEach(h => {
-      holdMap[h.seat_id] = { held_until: h.held_until, user_id: h.user_id };
-    });
+
+    try {
+      const holdsRes = await db.query(
+        `SELECT seat_id, held_until, user_id FROM bookings
+         WHERE movie = $1 AND show_time = $2 AND status = 'held'`,
+        [movie, time]
+      );
+      holdsRes.rows.forEach(h => {
+        holdMap[h.seat_id] = { held_until: h.held_until, user_id: h.user_id };
+      });
+    } catch (holdsErr) {
+      if (!isMissingRelationError(holdsErr)) {
+        throw holdsErr;
+      }
+    }
 
     // Merge hold info into seat data
     const seats = result.rows.map(seat => ({
@@ -115,4 +183,15 @@ app.put("/book/legacy/:id/:name", async (req, res) => {
 // ─── Periodic hold expiry (every 15 seconds) ─────────────────────
 setInterval(() => expireHolds(), 15000);
 
-httpServer.listen(port, () => console.log("Server starting on port: " + port));
+async function bootstrap() {
+  try {
+    await ensureCoreSchema();
+    console.log("Core schema verified");
+  } catch (err) {
+    console.error("Schema verification warning:", err.message || err);
+  }
+
+  httpServer.listen(port, () => console.log("Server starting on port: " + port));
+}
+
+bootstrap();

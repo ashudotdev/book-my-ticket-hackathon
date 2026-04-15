@@ -605,6 +605,123 @@
     .app-btn.cancel { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.86); }
     .app-btn.ok { background: linear-gradient(135deg, #00ffe0, #00c4a7); color: #0a0a0f; }
 
+    .auth-fab {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      z-index: 1250;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      max-width: min(96vw, 520px);
+    }
+    .auth-chip {
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(0,0,0,0.38);
+      color: #fff;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .auth-chip.primary {
+      background: linear-gradient(135deg, #00ffe0, #00c4a7);
+      color: #0a0a0f;
+      border-color: transparent;
+    }
+    .auth-chip.ghost {
+      color: rgba(255,255,255,0.82);
+    }
+    .auth-chip.hidden { display: none; }
+
+    .auth-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .auth-tab {
+      flex: 1;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.04);
+      color: rgba(255,255,255,0.75);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .auth-tab.active {
+      color: #0a0a0f;
+      background: linear-gradient(135deg, #00ffe0, #00c4a7);
+      border-color: transparent;
+    }
+
+    .bookings-wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 90px 18px 40px 18px;
+    }
+    .bookings-title {
+      font-size: 1.7rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+    .bookings-sub {
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.55);
+      margin-bottom: 20px;
+    }
+    .bookings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 14px;
+    }
+    .booking-card {
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .booking-movie {
+      font-weight: 800;
+      font-size: 1rem;
+      margin-bottom: 6px;
+      color: #fff;
+      text-transform: capitalize;
+    }
+    .booking-meta {
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 10px;
+      line-height: 1.45;
+    }
+    .booking-cancel {
+      border: 1px solid rgba(244,63,94,0.45);
+      background: rgba(244,63,94,0.12);
+      color: #fecdd3;
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .booking-empty {
+      text-align: center;
+      border: 1px dashed rgba(255,255,255,0.18);
+      border-radius: 14px;
+      padding: 26px;
+      color: rgba(255,255,255,0.58);
+    }
+
     /* Loading */
     .v3-loading { text-align: center; padding: 50px 20px; }
     .v3-spinner {
@@ -652,6 +769,12 @@
   </style>
 </head>
 <body>
+
+  <div class="auth-fab">
+    <button id="auth-btn" class="auth-chip primary" type="button">Login / Signup</button>
+    <button id="my-bookings-btn" class="auth-chip ghost hidden" type="button">My Bookings</button>
+    <button id="logout-btn" class="auth-chip ghost hidden" type="button">Logout</button>
+  </div>
 
   <!-- ═══════════ VIEW 1: Movie Grid ═══════════ -->
   <div class="view active" id="view-grid">
@@ -723,16 +846,31 @@
     </div>
   </div>
 
+  <!-- ═══════════ VIEW 4: My Bookings ═══════════ -->
+  <div class="view" id="view-bookings">
+    <div class="bookings-wrap">
+      <h2 class="bookings-title">My Bookings</h2>
+      <p class="bookings-sub">Manage your confirmed tickets and cancel if needed.</p>
+      <div class="bookings-grid" id="bookings-grid"></div>
+    </div>
+  </div>
+
   <div class="toast-wrap" id="toast-wrap"></div>
 
-  <div class="app-modal" id="name-modal" aria-hidden="true">
+  <div class="app-modal" id="auth-modal" aria-hidden="true">
     <div class="app-modal-card">
-      <div class="app-modal-ttl">Enter your name</div>
-      <div class="app-modal-sub">This will be shown on booked seats.</div>
-      <input id="name-modal-input" class="app-modal-inp" type="text" placeholder="Your name" maxlength="40" />
+      <div class="auth-tabs">
+        <button id="auth-tab-login" class="auth-tab active" type="button">Login</button>
+        <button id="auth-tab-signup" class="auth-tab" type="button">Signup</button>
+      </div>
+      <div class="app-modal-ttl" id="auth-modal-title">Welcome back</div>
+      <div class="app-modal-sub" id="auth-modal-subtitle">Login to manage bookings and cancellations.</div>
+      <input id="auth-name" class="app-modal-inp" type="text" placeholder="Name" maxlength="40" style="display:none;" />
+      <input id="auth-email" class="app-modal-inp" type="email" placeholder="Email" maxlength="120" />
+      <input id="auth-password" class="app-modal-inp" type="password" placeholder="Password" maxlength="120" />
       <div class="app-modal-actions">
-        <button id="name-modal-cancel" class="app-btn cancel" type="button">Cancel</button>
-        <button id="name-modal-ok" class="app-btn ok" type="button">Continue</button>
+        <button id="auth-cancel" class="app-btn cancel" type="button">Cancel</button>
+        <button id="auth-submit" class="app-btn ok" type="button">Login</button>
       </div>
     </div>
   </div>
@@ -788,11 +926,15 @@
     ];
 
     const API_BASE = 'https://book-my-ticket-hackathon.onrender.com';
+    const TOKEN_KEY = 'book_my_ticket_token';
 
     let currentMovie = null;
     let currentTime = null;
     let seatsData = [];
     let selectedSeats = [];
+    let authMode = 'login';
+    let authToken = localStorage.getItem(TOKEN_KEY) || '';
+    let currentUser = decodeToken(authToken);
 
     function showToast(message, type = 'info') {
       const wrap = document.getElementById('toast-wrap');
@@ -807,56 +949,242 @@
       }, 2600);
     }
 
-    function askName() {
-      return new Promise((resolve) => {
-        const modal = document.getElementById('name-modal');
-        const input = document.getElementById('name-modal-input');
-        const okBtn = document.getElementById('name-modal-ok');
-        const cancelBtn = document.getElementById('name-modal-cancel');
+    function decodeToken(token) {
+      if (!token) return null;
+      try {
+        const payload = token.split('.')[1];
+        const base = payload.replace(/-/g, '+').replace(/_/g, '/');
+        return JSON.parse(atob(base));
+      } catch {
+        return null;
+      }
+    }
 
-        const cleanup = () => {
-          okBtn.removeEventListener('click', onOk);
-          cancelBtn.removeEventListener('click', onCancel);
-          modal.removeEventListener('click', onOverlay);
-          document.removeEventListener('keydown', onKey);
-        };
+    function setAuthToken(token) {
+      authToken = token || '';
+      if (authToken) {
+        localStorage.setItem(TOKEN_KEY, authToken);
+      } else {
+        localStorage.removeItem(TOKEN_KEY);
+      }
+      currentUser = decodeToken(authToken);
+      updateAuthUI();
+    }
 
-        const close = (value) => {
-          modal.classList.remove('open');
-          modal.setAttribute('aria-hidden', 'true');
-          cleanup();
-          resolve(value);
-        };
+    function authHeaders() {
+      return authToken ? { Authorization: `Bearer ${authToken}` } : {};
+    }
 
-        const onOk = () => {
-          const value = input.value.trim();
-          if (!value) {
-            showToast('Please enter your name.', 'error');
-            input.focus();
+    function updateAuthUI() {
+      const authBtn = document.getElementById('auth-btn');
+      const myBookingsBtn = document.getElementById('my-bookings-btn');
+      const logoutBtn = document.getElementById('logout-btn');
+
+      if (currentUser) {
+        authBtn.textContent = `Hi, ${currentUser.name || 'User'}`;
+        myBookingsBtn.classList.remove('hidden');
+        logoutBtn.classList.remove('hidden');
+      } else {
+        authBtn.textContent = 'Login / Signup';
+        myBookingsBtn.classList.add('hidden');
+        logoutBtn.classList.add('hidden');
+      }
+    }
+
+    function setAuthMode(mode) {
+      authMode = mode;
+      const isSignup = mode === 'signup';
+      document.getElementById('auth-tab-login').classList.toggle('active', !isSignup);
+      document.getElementById('auth-tab-signup').classList.toggle('active', isSignup);
+      document.getElementById('auth-modal-title').textContent = isSignup ? 'Create account' : 'Welcome back';
+      document.getElementById('auth-modal-subtitle').textContent = isSignup
+        ? 'Signup to book and manage tickets.'
+        : 'Login to manage bookings and cancellations.';
+      document.getElementById('auth-name').style.display = isSignup ? 'block' : 'none';
+      document.getElementById('auth-submit').textContent = isSignup ? 'Signup' : 'Login';
+    }
+
+    function openAuthModal(mode = 'login') {
+      setAuthMode(mode);
+      const modal = document.getElementById('auth-modal');
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden', 'false');
+      document.getElementById('auth-name').value = '';
+      document.getElementById('auth-email').value = '';
+      document.getElementById('auth-password').value = '';
+      setTimeout(() => {
+        (mode === 'signup' ? document.getElementById('auth-name') : document.getElementById('auth-email')).focus();
+      }, 0);
+    }
+
+    function closeAuthModal() {
+      const modal = document.getElementById('auth-modal');
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+
+    async function submitAuth() {
+      const name = document.getElementById('auth-name').value.trim();
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value;
+
+      if (!email || !password || (authMode === 'signup' && !name)) {
+        showToast('Please fill all required fields.', 'error');
+        return;
+      }
+
+      try {
+        if (authMode === 'signup') {
+          const signupRes = await fetch(`${API_BASE}/auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, password }),
+          });
+          const signupData = await signupRes.json();
+          if (!signupRes.ok || !signupData.success) {
+            showToast(signupData.message || 'Signup failed.', 'error');
             return;
           }
-          close(value);
-        };
+          showToast('Signup successful. Logging in…', 'success');
+        }
 
-        const onCancel = () => close(null);
-        const onOverlay = (e) => { if (e.target === modal) onCancel(); };
-        const onKey = (e) => {
-          if (!modal.classList.contains('open')) return;
-          if (e.key === 'Enter') onOk();
-          if (e.key === 'Escape') onCancel();
-        };
+        const loginRes = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const loginData = await loginRes.json();
 
-        input.value = '';
-        modal.classList.add('open');
-        modal.setAttribute('aria-hidden', 'false');
-        setTimeout(() => input.focus(), 0);
+        if (!loginRes.ok || !loginData.success || !loginData.token) {
+          showToast(loginData.message || 'Login failed.', 'error');
+          return;
+        }
 
-        okBtn.addEventListener('click', onOk);
-        cancelBtn.addEventListener('click', onCancel);
-        modal.addEventListener('click', onOverlay);
-        document.addEventListener('keydown', onKey);
-      });
+        setAuthToken(loginData.token);
+        closeAuthModal();
+        showToast('Logged in successfully.', 'success');
+      } catch (err) {
+        showToast('Auth error: ' + err.message, 'error');
+      }
     }
+
+    async function openMyBookings() {
+      if (!currentUser) {
+        openAuthModal('login');
+        return;
+      }
+      document.body.style.background = 'var(--bg)';
+      showView('view-bookings');
+      await fetchMyBookings();
+    }
+
+    async function fetchMyBookings() {
+      const grid = document.getElementById('bookings-grid');
+      grid.innerHTML = '<div class="booking-empty">Loading your bookings…</div>';
+
+      try {
+        const res = await fetch(`${API_BASE}/book/my-bookings`, {
+          headers: { ...authHeaders() },
+        });
+        const data = await res.json();
+
+        if (res.status === 401) {
+          setAuthToken('');
+          grid.innerHTML = '<div class="booking-empty">Session expired. Please login again.</div>';
+          showToast('Please login again.', 'error');
+          return;
+        }
+
+        if (!res.ok || !data.success) {
+          grid.innerHTML = `<div class="booking-empty">${data.message || 'Failed to load bookings.'}</div>`;
+          return;
+        }
+
+        const bookings = data.bookings || [];
+        if (bookings.length === 0) {
+          grid.innerHTML = '<div class="booking-empty">No confirmed bookings yet.</div>';
+          return;
+        }
+
+        grid.innerHTML = bookings.map((b) => {
+          const movie = MOVIES[b.movie]?.title || b.movie;
+          const time = TIME_SLOTS.find((t) => t.key === b.show_time)?.label || b.show_time;
+          return `
+            <div class="booking-card">
+              <div class="booking-movie">${movie}</div>
+              <div class="booking-meta">
+                Showtime: ${time}<br>
+                Seat: #${b.seat_number || b.seat_id}<br>
+                Booked: ${new Date(b.booked_at).toLocaleString()}
+              </div>
+              <button class="booking-cancel" data-booking-id="${b.id}" type="button">Cancel Ticket</button>
+            </div>
+          `;
+        }).join('');
+
+        grid.querySelectorAll('.booking-cancel').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            await cancelBooking(btn.dataset.bookingId);
+          });
+        });
+      } catch (err) {
+        grid.innerHTML = `<div class="booking-empty">Error: ${err.message}</div>`;
+      }
+    }
+
+    async function cancelBooking(bookingId) {
+      try {
+        const res = await fetch(`${API_BASE}/book/cancel/${bookingId}`, {
+          method: 'DELETE',
+          headers: { ...authHeaders() },
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          showToast(data.message || 'Could not cancel ticket.', 'error');
+          return;
+        }
+
+        showToast('Booking cancelled.', 'success');
+        await fetchMyBookings();
+        if (currentMovie && currentTime && document.getElementById('view-seats').classList.contains('active')) {
+          fetchSeats();
+        }
+      } catch (err) {
+        showToast('Cancel error: ' + err.message, 'error');
+      }
+    }
+
+    document.getElementById('auth-btn').addEventListener('click', () => {
+      if (currentUser) {
+        showToast(`Signed in as ${currentUser.name || currentUser.email}.`, 'info');
+        return;
+      }
+      openAuthModal('login');
+    });
+    document.getElementById('my-bookings-btn').addEventListener('click', openMyBookings);
+    document.getElementById('logout-btn').addEventListener('click', () => {
+      setAuthToken('');
+      showToast('Logged out.', 'info');
+      showView('view-grid');
+    });
+
+    document.getElementById('auth-tab-login').addEventListener('click', () => setAuthMode('login'));
+    document.getElementById('auth-tab-signup').addEventListener('click', () => setAuthMode('signup'));
+    document.getElementById('auth-cancel').addEventListener('click', closeAuthModal);
+    document.getElementById('auth-submit').addEventListener('click', submitAuth);
+    document.getElementById('auth-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'auth-modal') closeAuthModal();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      const modal = document.getElementById('auth-modal');
+      if (!modal.classList.contains('open')) return;
+      if (e.key === 'Escape') closeAuthModal();
+      if (e.key === 'Enter') submitAuth();
+    });
+
+    updateAuthUI();
 
     // ═══════════════════════════════════════
     // VIEW SWITCHING
@@ -1107,34 +1435,55 @@
 
     document.getElementById('v3-buy-btn').addEventListener('click', async () => {
       if (selectedSeats.length === 0) return;
-      const name = await askName();
-      if (!name) return;
+      if (!currentUser) {
+        showToast('Please login before booking.', 'info');
+        openAuthModal('login');
+        return;
+      }
 
       const btn = document.getElementById('v3-buy-btn');
       btn.disabled = true;
       btn.textContent = 'Booking…';
 
       try {
-        let allGood = true;
+        let heldCount = 0;
         for (const seatId of selectedSeats) {
-          const res = await fetch(`${API_BASE}/book/legacy/${seatId}/${encodeURIComponent(name)}?movie=${currentMovie.key}&time=${currentTime.key}`, { method: 'PUT' });
+          const res = await fetch(`${API_BASE}/book/hold/${seatId}?movie=${currentMovie.key}&time=${currentTime.key}`, {
+            method: 'POST',
+            headers: { ...authHeaders() },
+          });
           const data = await res.json();
-          if (data.error) {
-            showToast(`Seat ${seatId}: ${data.error}`, 'error');
-            allGood = false;
+          if (!res.ok || !data.success) {
+            showToast(`Seat ${seatId}: ${data.message || 'Could not hold seat.'}`, 'error');
+          } else {
+            heldCount += 1;
           }
         }
-        if (allGood) {
-          showToast('Booking successful! 🎬', 'success');
-        } else {
-          showToast('Some seats could not be booked.', 'error');
+
+        if (heldCount === 0) {
+          showToast('No seats could be held for booking.', 'error');
+          return;
         }
+
+        const confirmRes = await fetch(`${API_BASE}/book/confirm?movie=${currentMovie.key}&time=${currentTime.key}`, {
+          method: 'POST',
+          headers: { ...authHeaders() },
+        });
+        const confirmData = await confirmRes.json();
+
+        if (!confirmRes.ok || !confirmData.success) {
+          showToast(confirmData.message || 'Could not confirm booking.', 'error');
+        } else {
+          showToast('Booking successful! 🎬', 'success');
+        }
+
         selectedSeats = [];
         fetchSeats();
       } catch (e) {
         showToast('Error: ' + e.message, 'error');
       } finally {
         btn.textContent = 'Book Now';
+        updateBuyBar();
       }
     });
 
