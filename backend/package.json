@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node index.mjs",
     "dev": "bun run --watch index.mjs",
+    "reset:seats": "node reset-seats.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
