@@ -3,6 +3,16 @@ import jwt from "jsonwebtoken";
 import pool from "../config/db.mjs";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-here";
+const PASSWORD_RULE_MESSAGE = "Password must be at least 8 characters and include uppercase, lowercase, number, and special character";
+
+function isStrongPassword(password) {
+  return typeof password === "string"
+    && password.length >= 8
+    && /[A-Z]/.test(password)
+    && /[a-z]/.test(password)
+    && /[0-9]/.test(password)
+    && /[^A-Za-z0-9]/.test(password);
+}
 
 export const register = async (req, res) => {
   try {
@@ -10,6 +20,10 @@ export const register = async (req, res) => {
 
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: "Name, email, and password are required" });
+    }
+
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({ success: false, message: PASSWORD_RULE_MESSAGE });
     }
 
     // Check if user exists
