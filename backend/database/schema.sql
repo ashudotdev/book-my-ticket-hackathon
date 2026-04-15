@@ -122,5 +122,26 @@ CREATE TABLE IF NOT EXISTS bookings (
     movie VARCHAR(50) NOT NULL,
     show_time VARCHAR(10) NOT NULL,
     seat_id INT NOT NULL,
+    seat_number INT,
+    status VARCHAR(20) DEFAULT 'confirmed',
+    held_until TIMESTAMPTZ,
+    booked_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(movie, show_time, seat_id)
 );
+
+-- Migration-safe: add columns if they don't exist (for existing DBs)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='status') THEN
+        ALTER TABLE bookings ADD COLUMN status VARCHAR(20) DEFAULT 'confirmed';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='held_until') THEN
+        ALTER TABLE bookings ADD COLUMN held_until TIMESTAMPTZ;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='booked_at') THEN
+        ALTER TABLE bookings ADD COLUMN booked_at TIMESTAMPTZ DEFAULT NOW();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='seat_number') THEN
+        ALTER TABLE bookings ADD COLUMN seat_number INT;
+    END IF;
+END $$;

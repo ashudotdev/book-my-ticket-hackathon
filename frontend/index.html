@@ -525,6 +525,86 @@
     .v3-buy-btn:active { transform: scale(0.97); }
     .v3-buy-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; box-shadow: none; }
 
+    /* Toast + Modal UI */
+    .toast-wrap {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      z-index: 1200;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+    .toast {
+      min-width: 220px;
+      max-width: 340px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(11,13,20,0.92);
+      color: #fff;
+      font-size: 0.85rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      animation: toastIn 0.25s ease;
+    }
+    .toast.success { border-color: rgba(16,185,129,0.55); }
+    .toast.error { border-color: rgba(244,63,94,0.55); }
+    .toast.info { border-color: rgba(0,255,224,0.45); }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .app-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1300;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      padding: 14px;
+    }
+    .app-modal.open { display: flex; }
+    .app-modal-card {
+      width: min(420px, 100%);
+      background: rgba(18,20,28,0.95);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.4);
+    }
+    .app-modal-ttl { font-size: 1rem; font-weight: 800; margin-bottom: 8px; }
+    .app-modal-sub { font-size: 0.84rem; color: rgba(255,255,255,0.6); margin-bottom: 12px; }
+    .app-modal-inp {
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 10px;
+      padding: 12px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      outline: none;
+      margin-bottom: 14px;
+    }
+    .app-modal-inp:focus { border-color: rgba(0,255,224,0.6); }
+    .app-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+    .app-btn {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-weight: 700;
+      font-size: 0.83rem;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .app-btn.cancel { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.86); }
+    .app-btn.ok { background: linear-gradient(135deg, #00ffe0, #00c4a7); color: #0a0a0f; }
+
     /* Loading */
     .v3-loading { text-align: center; padding: 50px 20px; }
     .v3-spinner {
@@ -643,8 +723,19 @@
     </div>
   </div>
 
-  <!-- Socket.IO Client -->
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <div class="toast-wrap" id="toast-wrap"></div>
+
+  <div class="app-modal" id="name-modal" aria-hidden="true">
+    <div class="app-modal-card">
+      <div class="app-modal-ttl">Enter your name</div>
+      <div class="app-modal-sub">This will be shown on booked seats.</div>
+      <input id="name-modal-input" class="app-modal-inp" type="text" placeholder="Your name" maxlength="40" />
+      <div class="app-modal-actions">
+        <button id="name-modal-cancel" class="app-btn cancel" type="button">Cancel</button>
+        <button id="name-modal-ok" class="app-btn ok" type="button">Continue</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     // ═══════════════════════════════════════
@@ -702,6 +793,70 @@
     let currentTime = null;
     let seatsData = [];
     let selectedSeats = [];
+
+    function showToast(message, type = 'info') {
+      const wrap = document.getElementById('toast-wrap');
+      const el = document.createElement('div');
+      el.className = `toast ${type}`;
+      el.textContent = message;
+      wrap.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(-8px)';
+        setTimeout(() => el.remove(), 180);
+      }, 2600);
+    }
+
+    function askName() {
+      return new Promise((resolve) => {
+        const modal = document.getElementById('name-modal');
+        const input = document.getElementById('name-modal-input');
+        const okBtn = document.getElementById('name-modal-ok');
+        const cancelBtn = document.getElementById('name-modal-cancel');
+
+        const cleanup = () => {
+          okBtn.removeEventListener('click', onOk);
+          cancelBtn.removeEventListener('click', onCancel);
+          modal.removeEventListener('click', onOverlay);
+          document.removeEventListener('keydown', onKey);
+        };
+
+        const close = (value) => {
+          modal.classList.remove('open');
+          modal.setAttribute('aria-hidden', 'true');
+          cleanup();
+          resolve(value);
+        };
+
+        const onOk = () => {
+          const value = input.value.trim();
+          if (!value) {
+            showToast('Please enter your name.', 'error');
+            input.focus();
+            return;
+          }
+          close(value);
+        };
+
+        const onCancel = () => close(null);
+        const onOverlay = (e) => { if (e.target === modal) onCancel(); };
+        const onKey = (e) => {
+          if (!modal.classList.contains('open')) return;
+          if (e.key === 'Enter') onOk();
+          if (e.key === 'Escape') onCancel();
+        };
+
+        input.value = '';
+        modal.classList.add('open');
+        modal.setAttribute('aria-hidden', 'false');
+        setTimeout(() => input.focus(), 0);
+
+        okBtn.addEventListener('click', onOk);
+        cancelBtn.addEventListener('click', onCancel);
+        modal.addEventListener('click', onOverlay);
+        document.addEventListener('keydown', onKey);
+      });
+    }
 
     // ═══════════════════════════════════════
     // VIEW SWITCHING
@@ -952,7 +1107,7 @@
 
     document.getElementById('v3-buy-btn').addEventListener('click', async () => {
       if (selectedSeats.length === 0) return;
-      const name = prompt('Enter your name to book:');
+      const name = await askName();
       if (!name) return;
 
       const btn = document.getElementById('v3-buy-btn');
@@ -965,53 +1120,24 @@
           const res = await fetch(`${API_BASE}/book/legacy/${seatId}/${encodeURIComponent(name)}?movie=${currentMovie.key}&time=${currentTime.key}`, { method: 'PUT' });
           const data = await res.json();
           if (data.error) {
-            alert(`Seat ${seatId}: ${data.error}`);
+            showToast(`Seat ${seatId}: ${data.error}`, 'error');
             allGood = false;
           }
         }
-        if (allGood) alert('Booking successful! 🎬');
+        if (allGood) {
+          showToast('Booking successful! 🎬', 'success');
+        } else {
+          showToast('Some seats could not be booked.', 'error');
+        }
         selectedSeats = [];
         fetchSeats();
       } catch (e) {
-        alert('Error: ' + e.message);
+        showToast('Error: ' + e.message, 'error');
       } finally {
         btn.textContent = 'Book Now';
       }
     });
 
-    // ═══════════════════════════════════════
-    // SOCKET.IO — Real-time seat updates
-    // ═══════════════════════════════════════
-
-    const socket = io(API_BASE, {
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionDelay: 1000,
-    });
-
-    socket.on('connect', () => {
-      console.log('🔌 Socket connected:', socket.id);
-    });
-
-    socket.on('seatUpdated', ({ seatId, name, movie, time }) => {
-      console.log(`🪑 Seat ${seatId} booked by ${name} (${movie}/${time})`);
-      // If we're on the seats view for the same movie+time, refresh
-      if (
-        currentMovie && currentTime &&
-        document.getElementById('view-seats').classList.contains('active') &&
-        currentMovie.key === movie &&
-        currentTime.key === time
-      ) {
-        // Remove the just-booked seat from selection if we had it selected
-        const numId = Number(seatId);
-        selectedSeats = selectedSeats.filter(s => s !== numId);
-        fetchSeats();
-      }
-    });
-
-    socket.on('disconnect', () => {
-      console.log('🔌 Socket disconnected');
-    });
   </script>
 </body>
 </html>

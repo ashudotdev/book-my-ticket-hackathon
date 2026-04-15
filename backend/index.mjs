@@ -5,16 +5,13 @@ import { fileURLToPath } from "url";
 import cors from "cors";
 import db from "./config/db.mjs";
 import { createServer } from "http";
-import { Server } from "socket.io";
+import { expireHolds } from "./controllers/bookingController.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const port = process.env.PORT || 8080;
 
 const app = express();
 const httpServer = createServer(app);
-const io = new Server(httpServer, {
-  cors: { origin: "*" }
-});
 
 app.use(cors());
 app.use(express.json());
@@ -52,7 +49,28 @@ app.get("/seats", async (req, res) => {
   }
   try {
     const result = await db.query(`SELECT * FROM ${table} ORDER BY seat_number`);
-    res.json(result.rows);
+
+    // Also fetch hold info for held seats so frontend can show countdown
+    const movie = req.query.movie.toLowerCase();
+    const time = req.query.time.toLowerCase();
+    const holdsRes = await db.query(
+      `SELECT seat_id, held_until, user_id FROM bookings
+       WHERE movie = $1 AND show_time = $2 AND status = 'held'`,
+      [movie, time]
+    );
+    const holdMap = {};
+    holdsRes.rows.forEach(h => {
+      holdMap[h.seat_id] = { held_until: h.held_until, user_id: h.user_id };
+    });
+
+    // Merge hold info into seat data
+    const seats = result.rows.map(seat => ({
+      ...seat,
+      held_until: holdMap[seat.id]?.held_until || null,
+      held_by_user: holdMap[seat.id]?.user_id || null,
+    }));
+
+    res.json(seats);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -87,19 +105,14 @@ app.put("/book/legacy/:id/:name", async (req, res) => {
     await conn.query("COMMIT");
     conn.release();
 
-    // Emit seat update event to all clients
-    io.emit("seatUpdated", {
-      seatId: id,
-      name,
-      movie: req.query.movie,
-      time: req.query.time
-    });
-
     res.json(updateResult);
   } catch (ex) {
     console.log(ex);
     res.sendStatus(500);
   }
 });
+
+// ─── Periodic hold expiry (every 15 seconds) ─────────────────────
+setInterval(() => expireHolds(), 15000);
 
 httpServer.listen(port, () => console.log("Server starting on port: " + port));
