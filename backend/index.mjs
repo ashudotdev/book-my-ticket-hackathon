@@ -2,6 +2,8 @@ import 'dotenv/config';
 import express from "express";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
+import fs from "fs";
+import path from "path";
 import cors from "cors";
 import db from "./config/db.mjs";
 import { createServer } from "http";
@@ -73,6 +75,12 @@ async function ensureCoreSchema() {
   `);
 }
 
+async function ensureSeatSchema() {
+  const schemaPath = path.join(__dirname, "database", "schema.sql");
+  const sql = fs.readFileSync(schemaPath, "utf8");
+  await db.query(sql);
+}
+
 app.use(cors());
 app.use(express.json());
 
@@ -141,6 +149,11 @@ app.get("/seats", async (req, res) => {
     res.json(seats);
   } catch (err) {
     console.error(err);
+    if (isMissingRelationError(err) || err?.code === "42703") {
+      return res.status(503).json({
+        error: "Database schema is not ready. Please rerun the migration and restart the server.",
+      });
+    }
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -184,6 +197,13 @@ app.put("/book/legacy/:id/:name", async (req, res) => {
 setInterval(() => expireHolds(), 15000);
 
 async function bootstrap() {
+  try {
+    await ensureSeatSchema();
+    console.log("Seat schema verified");
+  } catch (err) {
+    console.error("Seat schema verification warning:", err.message || err);
+  }
+
   try {
     await ensureCoreSchema();
     console.log("Core schema verified");
