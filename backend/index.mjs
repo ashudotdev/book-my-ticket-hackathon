@@ -59,6 +59,38 @@ async function ensureCoreSchema() {
   await db.query(`
     DO $$
     BEGIN
+      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='moviename')
+         AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='movie') THEN
+        ALTER TABLE bookings RENAME COLUMN moviename TO movie;
+      END IF;
+      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='movie_name')
+         AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='movie') THEN
+        ALTER TABLE bookings RENAME COLUMN movie_name TO movie;
+      END IF;
+      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='time')
+         AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='show_time') THEN
+        ALTER TABLE bookings RENAME COLUMN time TO show_time;
+      END IF;
+      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='seatno')
+         AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='seat_id') THEN
+        ALTER TABLE bookings RENAME COLUMN seatno TO seat_id;
+      END IF;
+      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='seat_no')
+         AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='seat_id') THEN
+        ALTER TABLE bookings RENAME COLUMN seat_no TO seat_id;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='user_id') THEN
+        ALTER TABLE bookings ADD COLUMN user_id INT REFERENCES users(id) ON DELETE CASCADE;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='movie') THEN
+        ALTER TABLE bookings ADD COLUMN movie VARCHAR(50);
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='show_time') THEN
+        ALTER TABLE bookings ADD COLUMN show_time VARCHAR(10);
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='seat_id') THEN
+        ALTER TABLE bookings ADD COLUMN seat_id INT;
+      END IF;
       IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='status') THEN
         ALTER TABLE bookings ADD COLUMN status VARCHAR(20) DEFAULT 'confirmed';
       END IF;
@@ -71,6 +103,9 @@ async function ensureCoreSchema() {
       IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='seat_number') THEN
         ALTER TABLE bookings ADD COLUMN seat_number INT;
       END IF;
+      UPDATE bookings SET status = 'confirmed' WHERE status IS NULL;
+      UPDATE bookings SET booked_at = NOW() WHERE booked_at IS NULL;
+      UPDATE bookings SET seat_number = seat_id WHERE seat_number IS NULL AND seat_id IS NOT NULL;
     END $$;
   `);
 }

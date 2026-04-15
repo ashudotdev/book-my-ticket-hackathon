@@ -84,6 +84,28 @@ CREATE TABLE IF NOT EXISTS seats_hailmary_7pm (
     isbooked INT DEFAULT 0
 );
 
+-- ===================== Seat Table Compatibility Migration =====================
+-- Older deployments may already have seat tables without seat_number/name/isbooked.
+-- Upgrade those tables in place so fresh code works against existing databases.
+DO $$
+DECLARE
+    tbl TEXT;
+BEGIN
+    FOREACH tbl IN ARRAY ARRAY[
+        'seats_dhurandhar_9am', 'seats_dhurandhar_2pm', 'seats_dhurandhar_7pm',
+        'seats_boothbangla_9am', 'seats_boothbangla_2pm', 'seats_boothbangla_7pm',
+        'seats_dacoit_9am', 'seats_dacoit_2pm', 'seats_dacoit_7pm',
+        'seats_hailmary_9am', 'seats_hailmary_2pm', 'seats_hailmary_7pm'
+    ]
+    LOOP
+        EXECUTE format('ALTER TABLE %I ADD COLUMN IF NOT EXISTS seat_number INT', tbl);
+        EXECUTE format('ALTER TABLE %I ADD COLUMN IF NOT EXISTS name VARCHAR(255)', tbl);
+        EXECUTE format('ALTER TABLE %I ADD COLUMN IF NOT EXISTS isbooked INT DEFAULT 0', tbl);
+        EXECUTE format('UPDATE %I SET seat_number = id WHERE seat_number IS NULL', tbl);
+        EXECUTE format('UPDATE %I SET isbooked = 0 WHERE isbooked IS NULL', tbl);
+    END LOOP;
+END $$;
+
 -- ===================== Seed Seats =====================
 -- Only seed if the table is empty (idempotent)
 
@@ -132,6 +154,39 @@ CREATE TABLE IF NOT EXISTS bookings (
 -- Migration-safe: add columns if they don't exist (for existing DBs)
 DO $$
 BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='moviename')
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='movie') THEN
+        ALTER TABLE bookings RENAME COLUMN moviename TO movie;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='movie_name')
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='movie') THEN
+        ALTER TABLE bookings RENAME COLUMN movie_name TO movie;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='time')
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='show_time') THEN
+        ALTER TABLE bookings RENAME COLUMN time TO show_time;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='seatno')
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='seat_id') THEN
+        ALTER TABLE bookings RENAME COLUMN seatno TO seat_id;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='seat_no')
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='seat_id') THEN
+        ALTER TABLE bookings RENAME COLUMN seat_no TO seat_id;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='user_id') THEN
+        ALTER TABLE bookings ADD COLUMN user_id INT REFERENCES users(id) ON DELETE CASCADE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='movie') THEN
+        ALTER TABLE bookings ADD COLUMN movie VARCHAR(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='show_time') THEN
+        ALTER TABLE bookings ADD COLUMN show_time VARCHAR(10);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='seat_id') THEN
+        ALTER TABLE bookings ADD COLUMN seat_id INT;
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='status') THEN
         ALTER TABLE bookings ADD COLUMN status VARCHAR(20) DEFAULT 'confirmed';
     END IF;
@@ -144,4 +199,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='seat_number') THEN
         ALTER TABLE bookings ADD COLUMN seat_number INT;
     END IF;
+    UPDATE bookings SET status = 'confirmed' WHERE status IS NULL;
+    UPDATE bookings SET booked_at = NOW() WHERE booked_at IS NULL;
+    UPDATE bookings SET seat_number = seat_id WHERE seat_number IS NULL AND seat_id IS NOT NULL;
 END $$;
