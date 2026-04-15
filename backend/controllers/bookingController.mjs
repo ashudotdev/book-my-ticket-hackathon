@@ -60,14 +60,39 @@ export const holdSeat = async (req, res) => {
     // Mark seat as held (isbooked = 2)
     await conn.query(`UPDATE ${table} SET isbooked = 2, name = $2 WHERE id = $1`, [seatId, userName]);
 
-    // Insert booking record with status = 'held'
-    await conn.query(
-      `INSERT INTO bookings (user_id, movie, show_time, seat_id, seat_number, status, held_until)
-       VALUES ($1, $2, $3, $4, $5, 'held', $6)
-       ON CONFLICT (movie, show_time, seat_id) DO UPDATE
-       SET user_id = $1, status = 'held', held_until = $6, seat_number = $5`,
-      [userId, movie, time, seatId, seatNumber, heldUntil]
+    // Legacy deployments may not have the newer UNIQUE constraint needed for
+    // ON CONFLICT (movie, show_time, seat_id), so perform a manual upsert.
+    const existingBookingRes = await conn.query(
+      `SELECT id, status FROM bookings
+       WHERE movie = $1 AND show_time = $2 AND seat_id = $3
+       LIMIT 1
+       FOR UPDATE`,
+      [movie, time, seatId]
     );
+
+    if (existingBookingRes.rowCount > 0) {
+      const existingBooking = existingBookingRes.rows[0];
+
+      if (existingBooking.status === "confirmed") {
+        await conn.query("ROLLBACK");
+        conn.release();
+        return res.status(400).json({ success: false, message: "Seat already booked" });
+      }
+
+      await conn.query(
+        `UPDATE bookings
+         SET user_id = $1, movie = $2, show_time = $3, seat_id = $4, seat_number = $5,
+             status = 'held', held_until = $6
+         WHERE id = $7`,
+        [userId, movie, time, seatId, seatNumber, heldUntil, existingBooking.id]
+      );
+    } else {
+      await conn.query(
+        `INSERT INTO bookings (user_id, movie, show_time, seat_id, seat_number, status, held_until)
+         VALUES ($1, $2, $3, $4, $5, 'held', $6)`,
+        [userId, movie, time, seatId, seatNumber, heldUntil]
+      );
+    }
 
     await conn.query("COMMIT");
     conn.release();

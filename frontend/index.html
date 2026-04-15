@@ -528,17 +528,19 @@
     /* Toast + Modal UI */
     .toast-wrap {
       position: fixed;
-      top: 18px;
-      right: 18px;
-      z-index: 1200;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      z-index: 1600;
       display: flex;
       flex-direction: column;
       gap: 10px;
       pointer-events: none;
+      align-items: center;
+      width: min(92vw, 420px);
     }
     .toast {
-      min-width: 220px;
-      max-width: 340px;
+      width: 100%;
       padding: 12px 14px;
       border-radius: 12px;
       border: 1px solid rgba(255,255,255,0.12);
@@ -616,6 +618,10 @@
       flex-wrap: wrap;
       justify-content: flex-end;
       max-width: min(96vw, 520px);
+      transition: top 0.2s ease;
+    }
+    body.view-seats-active .auth-fab {
+      top: 78px;
     }
     .auth-chip {
       border: 1px solid rgba(255,255,255,0.2);
@@ -667,6 +673,32 @@
       max-width: 980px;
       margin: 0 auto;
       padding: 90px 18px 40px 18px;
+    }
+    .bookings-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .bookings-copy {
+      flex: 1;
+      min-width: 0;
+    }
+    .bookings-back {
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.05);
+      color: #fff;
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
     }
     .bookings-title {
       font-size: 1.7rem;
@@ -765,6 +797,9 @@
       .srow-seats { gap: 2px; }
       .srow { margin-bottom: 4px; }
       .v3-buybar-inner { padding: 12px 16px; }
+      .bookings-head { flex-direction: column; align-items: stretch; }
+      .bookings-back { width: fit-content; }
+      body.view-seats-active .auth-fab { top: 72px; }
     }
   </style>
 </head>
@@ -849,8 +884,16 @@
   <!-- ═══════════ VIEW 4: My Bookings ═══════════ -->
   <div class="view" id="view-bookings">
     <div class="bookings-wrap">
-      <h2 class="bookings-title">My Bookings</h2>
-      <p class="bookings-sub">Manage your confirmed tickets and cancel if needed.</p>
+      <div class="bookings-head">
+        <div class="bookings-copy">
+          <h2 class="bookings-title">My Bookings</h2>
+          <p class="bookings-sub">Manage your confirmed tickets and cancel if needed.</p>
+        </div>
+        <button id="bookings-back" class="bookings-back" type="button">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8L10 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Back
+        </button>
+      </div>
       <div class="bookings-grid" id="bookings-grid"></div>
     </div>
   </div>
@@ -933,18 +976,22 @@
     let seatsData = [];
     let selectedSeats = [];
     let authMode = 'login';
+    let previousViewId = 'view-grid';
     let authToken = localStorage.getItem(TOKEN_KEY) || '';
     let currentUser = decodeToken(authToken);
 
     function showToast(message, type = 'info') {
       const wrap = document.getElementById('toast-wrap');
+      if (wrap.children.length >= 3) {
+        wrap.firstElementChild?.remove();
+      }
       const el = document.createElement('div');
       el.className = `toast ${type}`;
       el.textContent = message;
       wrap.appendChild(el);
       setTimeout(() => {
         el.style.opacity = '0';
-        el.style.transform = 'translateY(-8px)';
+        el.style.transform = 'translateY(8px)';
         setTimeout(() => el.remove(), 180);
       }, 2600);
     }
@@ -1073,6 +1120,7 @@
         openAuthModal('login');
         return;
       }
+      previousViewId = document.querySelector('.view.active')?.id || 'view-grid';
       document.body.style.background = 'var(--bg)';
       showView('view-bookings');
       await fetchMyBookings();
@@ -1176,6 +1224,16 @@
     document.getElementById('auth-modal').addEventListener('click', (e) => {
       if (e.target.id === 'auth-modal') closeAuthModal();
     });
+    document.getElementById('bookings-back').addEventListener('click', () => {
+      if (previousViewId === 'view-seats' && currentMovie && currentTime) {
+        document.body.style.background = currentMovie.bg;
+      } else if (previousViewId === 'view-detail' && currentMovie) {
+        document.body.style.background = currentMovie.bg;
+      } else {
+        document.body.style.background = 'var(--bg)';
+      }
+      showView(previousViewId || 'view-grid');
+    });
 
     document.addEventListener('keydown', (e) => {
       const modal = document.getElementById('auth-modal');
@@ -1193,6 +1251,8 @@
     function showView(id) {
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
       document.getElementById(id).classList.add('active');
+      document.body.classList.remove('view-grid-active', 'view-detail-active', 'view-seats-active', 'view-bookings-active');
+      document.body.classList.add(`${id}-active`);
       window.scrollTo(0, 0);
     }
 
