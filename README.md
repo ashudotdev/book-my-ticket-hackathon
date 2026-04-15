@@ -160,14 +160,12 @@ npm run preview
 
 ## Screenshots / Demo Images
 
-> Add your images in `frontend/public/assets` or a `docs/` folder and replace paths below.
 
-```md
 ![Auth Screen](./frontend/public/assets/auth.png)
 ![Seat Selection](./frontend/public/assets/seats.png)
-![My Bookings](./frontend/public/assets/bookings.png)`
-![Seat Holding](./frontend/public/assets/hold.png)`
-````
+![My Bookings](./frontend/public/assets/bookings.png)
+![Seat Holding](./frontend/public/assets/hold.png)
+
 
 ---
 
